@@ -5,12 +5,37 @@ Terraform module to create a Google Kubernetes Engine cluster with Workload Iden
 ## Usage
 
 ```hcl
-module "app_dbs" {
-  source            = "iqz-systems/db-group/postgresql"
+module "gke_cluster" {
+  source            = "iqz-systems/gke-cluster/google"
   version           = "1.0.0"
-  username          = "app_db_user"
-  db_names          = ["app_db1", "app_db2"]
-  password_length   = 32
+
+  project_id                = data.google_project.demo_project.project_id
+  project_region                    = "us-east1"
+  project_zone                     = "us-east1-b"
+  cluster_node_zones= ["us-east1-b"]
+  cluster_name              = "${var.prefix}-cluster"
+  machine_type              = "e2-standard-4"
+  node_service_account_name = "IQZ Apps cluster service account"
+  cluster_description       = "GKE cluster for hosting the internal IQZ apps."
+
+  node_pools = [
+    {
+      name         = "app-nodes"
+      machine_type = "e2-standard-4" # E2 machine type; 4 vCPU; 16GB RAM
+      cluster_node_tags = [
+        "iqz-apps-cluster",
+        "app-nodes"
+      ]
+    },
+    {
+      name         = "pega-nodes"
+      machine_type = "e2-highmem-4" # E2 machine type; 4 vCPU; 32GB RAM
+      cluster_node_tags = [
+        "iqz-apps-cluster",
+        "pega-nodes"
+      ]
+    }
+  ]
 }
 ```
 
@@ -35,4 +60,4 @@ module "app_dbs" {
 
 ## Links
 
-- [Terraform registry](https://registry.terraform.io/modules/iqz-systems/db-group/postgresql/latest)
+- [Terraform registry](https://registry.terraform.io/modules/iqz-systems/gke-cluster/google/latest)

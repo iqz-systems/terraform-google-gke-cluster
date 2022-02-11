@@ -1,9 +1,11 @@
 resource "google_compute_network" "vpc_network" {
-  name = "${var.cluster_name}-network"
+  name    = "${var.cluster_name}-network"
+  project = data.google_project.current.project_id
 }
 
 resource "google_container_cluster" "cluster" {
   name        = var.cluster_name
+  project     = data.google_project.current.project_id
   location    = var.project_region
   description = var.cluster_description
 
@@ -61,6 +63,7 @@ resource "google_container_node_pool" "node_pool" {
   count = length(var.node_pools)
 
   name       = "${var.cluster_name}-${var.node_pools[count.index].name}"
+  project    = data.google_project.current.project_id
   location   = var.project_region
   cluster    = google_container_cluster.cluster.name
   node_count = 2

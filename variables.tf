@@ -1,5 +1,6 @@
-variable "project_name" {
-
+variable "project_id" {
+  type        = string
+  description = "The id of the project where the cluster has to be created."
 }
 
 variable "project_region" {
