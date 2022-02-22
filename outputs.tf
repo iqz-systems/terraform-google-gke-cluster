@@ -20,3 +20,15 @@ output "k8s_kubeconfig" {
   sensitive   = true
   description = "The raw kubeconfig file for the cluster."
 }
+
+output "service_account_email" {
+  value       = google_service_account.k8s_sa.email
+  sensitive   = false
+  description = "The service account associated with the cluster."
+}
+
+output "ingress_ip" {
+  value       = google_compute_address.gke_ingress_ip.address
+  sensitive   = false
+  description = "The IP address of the pre-installed ingress controller."
+}

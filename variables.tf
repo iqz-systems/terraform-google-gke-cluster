@@ -9,8 +9,13 @@ variable "project_region" {
 }
 
 variable "project_zone" {
-  type        = list(string)
+  type        = string
   description = "The zone where the resources will be created."
+}
+
+variable "cluster_region" {
+  type        = string
+  description = "The region where the cluster master has to be created."
 }
 
 variable "cluster_node_zones" {
@@ -35,11 +40,7 @@ variable "node_pools" {
     machine_type      = string
     cluster_node_tags = list(string)
   }))
-}
-
-variable "machine_type" {
-  type        = string
-  description = "The machine type to be used in the cluster."
+  description = "A list of objects describing the node pools to be associated with the cluster."
 }
 
 variable "node_service_account_name" {

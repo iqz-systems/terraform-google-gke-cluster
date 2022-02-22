@@ -6,15 +6,16 @@ resource "google_compute_network" "vpc_network" {
 resource "google_container_cluster" "cluster" {
   name        = var.cluster_name
   project     = data.google_project.current.project_id
-  location    = var.project_region
   description = var.cluster_description
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
   remove_default_node_pool = true
-  node_locations           = var.cluster_node_zones
-  initial_node_count       = 1
+
+  location           = var.cluster_region
+  node_locations     = var.cluster_node_zones
+  initial_node_count = 1
 
   # Workload identity enables an application running on GKE to authenticate to
   # Google Cloud using a Kubernetes Service Account (KSA). This works by mapping
