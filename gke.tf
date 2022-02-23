@@ -24,11 +24,11 @@ resource "google_container_cluster" "cluster" {
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
+  initial_node_count       = 1
   remove_default_node_pool = true
 
-  location           = var.cluster_region
-  node_locations     = var.cluster_node_zones
-  initial_node_count = 1
+  location       = var.cluster_region
+  node_locations = var.cluster_node_zones
 
   vertical_pod_autoscaling {
     enabled = true
@@ -92,7 +92,6 @@ resource "google_container_node_pool" "node_pool" {
   project        = data.google_project.current.project_id
   location       = var.project_region
   cluster        = google_container_cluster.cluster.name
-  node_count     = var.node_pools[count.index].min_node_count
   node_locations = var.cluster_node_zones
 
   node_config {
