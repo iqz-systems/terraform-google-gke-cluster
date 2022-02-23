@@ -14,7 +14,7 @@ module "gke_cluster" {
   project_id          = "my_project"
   project_region      = "us-east1"
   project_zone        = "us-east1-b"
-  cluster_region      = "us-east1
+  cluster_region      = "us-east1"
   cluster_node_zones  = ["us-east1-b"]
   cluster_description = "GKE cluster for hosting production applications."
   cluster_name        = "my-cluster"
