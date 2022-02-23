@@ -27,8 +27,9 @@ output "service_account_email" {
   description = "The service account associated with the cluster."
 }
 
-output "ingress_ip" {
-  value       = google_compute_address.gke_ingress_ip.address
-  sensitive   = false
-  description = "The IP address of the pre-installed ingress controller."
-}
+# Currently in beta
+# output "cluster_notification_topic_id" {
+#   value       = google_pubsub_topic.cluster_notifications.id
+#   sensitive   = false
+#   description = "The id of the topic where the cluster notifications are published."
+# }

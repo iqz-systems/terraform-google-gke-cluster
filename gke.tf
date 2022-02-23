@@ -3,6 +3,19 @@ resource "google_compute_network" "vpc_network" {
   project = data.google_project.current.project_id
 }
 
+# Currently in beta
+# resource "google_pubsub_topic" "cluster_notifications" {
+#   name    = "${var.cluster_name}-notifications"
+#   project = data.google_project.current.project_id
+
+#   labels = {
+#     type         = "cluster_notification"
+#     cluster_name = google_container_cluster.cluster.name
+#   }
+
+#   message_retention_duration = "86400s" # 1 day
+# }
+
 resource "google_container_cluster" "cluster" {
   name        = var.cluster_name
   project     = data.google_project.current.project_id
@@ -17,12 +30,16 @@ resource "google_container_cluster" "cluster" {
   node_locations     = var.cluster_node_zones
   initial_node_count = 1
 
+  vertical_pod_autoscaling {
+    enabled = true
+  }
+
   # Workload identity enables an application running on GKE to authenticate to
   # Google Cloud using a Kubernetes Service Account (KSA). This works by mapping
   # a KSA to a Google Service Account (GSA).
   # Refer: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#authenticating_to
   workload_identity_config {
-    identity_namespace = "${data.google_project.current.project_id}.svc.id.goog"
+    workload_pool = "${data.google_project.current.project_id}.svc.id.goog"
   }
 
   logging_service    = "logging.googleapis.com/kubernetes"
@@ -41,6 +58,14 @@ resource "google_container_cluster" "cluster" {
     cluster_ipv4_cidr_block  = "/16"
     services_ipv4_cidr_block = "/22"
   }
+
+  # Currently in beta
+  # notification_config {
+  #   pubsub {
+  #     enabled = var.enable_notifications
+  #     topic   = google_pubsub_topic.cluster_notifications.id
+  #   }
+  # }
 
   maintenance_policy {
     daily_maintenance_window {
@@ -63,11 +88,12 @@ resource "google_container_cluster" "cluster" {
 resource "google_container_node_pool" "node_pool" {
   count = length(var.node_pools)
 
-  name       = "${var.cluster_name}-${var.node_pools[count.index].name}"
-  project    = data.google_project.current.project_id
-  location   = var.project_region
-  cluster    = google_container_cluster.cluster.name
-  node_count = 2
+  name           = "${var.cluster_name}-${var.node_pools[count.index].name}"
+  project        = data.google_project.current.project_id
+  location       = var.project_region
+  cluster        = google_container_cluster.cluster.name
+  node_count     = var.node_pools[count.index].min_node_count
+  node_locations = var.cluster_node_zones
 
   node_config {
     preemptible  = false
@@ -98,7 +124,7 @@ resource "google_container_node_pool" "node_pool" {
     tags = var.node_pools[count.index].cluster_node_tags
 
     workload_metadata_config {
-      node_metadata = "GKE_METADATA_SERVER"
+      mode = "GKE_METADATA"
     }
   }
 
@@ -108,8 +134,8 @@ resource "google_container_node_pool" "node_pool" {
   }
 
   autoscaling {
-    min_node_count = 0
-    max_node_count = 3
+    min_node_count = var.node_pools[count.index].min_node_count
+    max_node_count = var.node_pools[count.index].max_node_count
   }
 
   upgrade_settings {
@@ -126,7 +152,8 @@ resource "google_container_node_pool" "node_pool" {
 
 # https://github.com/terraform-google-modules/terraform-google-kubernetes-engine/tree/master/modules/auth
 module "gke_auth" {
-  source = "terraform-google-modules/kubernetes-engine/google//modules/auth"
+  source     = "terraform-google-modules/kubernetes-engine/google//modules/auth"
+  project_id = data.google_project.current.project_id
 
   cluster_name = google_container_cluster.cluster.name
   location     = var.project_region
