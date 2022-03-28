@@ -88,7 +88,7 @@ resource "google_container_cluster" "cluster" {
 resource "google_container_node_pool" "node_pool" {
   count = length(var.node_pools)
 
-  name           = "${var.cluster_name}-${var.node_pools[count.index].name}"
+  name           = var.node_pools[count.index].name
   project        = data.google_project.current.project_id
   location       = var.project_region
   cluster        = google_container_cluster.cluster.name
