@@ -132,6 +132,8 @@ resource "google_container_node_pool" "node_pool" {
     auto_upgrade = true
   }
 
+  initial_node_count = 1
+
   autoscaling {
     min_node_count = var.node_pools[count.index].min_node_count
     max_node_count = var.node_pools[count.index].max_node_count
@@ -145,6 +147,7 @@ resource "google_container_node_pool" "node_pool" {
   lifecycle {
     ignore_changes = [
       node_count,
+      initial_node_count,
     ]
   }
 }
