@@ -149,7 +149,6 @@ resource "google_container_node_pool" "node_pool" {
     ignore_changes = [
       node_count,
       initial_node_count,
-      node_version,
     ]
   }
 }
