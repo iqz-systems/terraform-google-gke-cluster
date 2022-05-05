@@ -80,7 +80,8 @@ resource "google_container_cluster" "cluster" {
   lifecycle {
     ignore_changes = [
       node_version,
-      node_pool.0.version
+      node_pool.0.version,
+      master_version,
     ]
   }
 }
@@ -148,6 +149,7 @@ resource "google_container_node_pool" "node_pool" {
     ignore_changes = [
       node_count,
       initial_node_count,
+      node_version,
     ]
   }
 }
