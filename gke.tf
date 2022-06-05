@@ -81,7 +81,6 @@ resource "google_container_cluster" "cluster" {
     ignore_changes = [
       node_version,
       node_pool.0.version,
-      master_version,
     ]
   }
 }
