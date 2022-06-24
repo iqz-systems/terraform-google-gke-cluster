@@ -96,6 +96,7 @@ resource "google_container_node_pool" "node_pool" {
 
   node_config {
     preemptible  = var.node_pools[count.index].preemptible_nodes
+    spot         = var.node_pools[count.index].spot_nodes
     machine_type = var.node_pools[count.index].machine_type
     image_type   = "cos_containerd"
 
