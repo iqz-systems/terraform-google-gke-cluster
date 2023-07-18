@@ -61,5 +61,6 @@ variable "node_service_account_name" {
 
 variable "enable_managed_prometheus" {
   type        = bool
-  description = "Set true to enable managed prometheus."
+  default     = false
+  description = "Set true to enable managed prometheus. Defaults to false"
 }
