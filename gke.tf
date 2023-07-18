@@ -77,6 +77,12 @@ resource "google_container_cluster" "cluster" {
     channel = "REGULAR"
   }
 
+  monitoring_config {
+    managed_prometheus {
+      enabled = var.enable_managed_prometheus
+    }
+  }
+
   lifecycle {
     ignore_changes = [
       node_version,
