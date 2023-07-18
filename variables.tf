@@ -58,3 +58,9 @@ variable "node_service_account_name" {
   type        = string
   description = "The display name of the service account that will be created for the cluster."
 }
+
+variable "enable_managed_prometheus" {
+  type        = bool
+  default     = false
+  description = "Set true to enable managed prometheus. Defaults to false"
+}

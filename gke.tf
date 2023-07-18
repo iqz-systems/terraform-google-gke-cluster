@@ -77,6 +77,17 @@ resource "google_container_cluster" "cluster" {
     channel = "REGULAR"
   }
 
+  logging_config {
+    enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]
+  }
+
+  monitoring_config {
+    enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER"]
+    managed_prometheus {
+      enabled = var.enable_managed_prometheus
+    }
+  }
+
   lifecycle {
     ignore_changes = [
       node_version,
