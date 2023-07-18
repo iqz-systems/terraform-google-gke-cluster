@@ -80,7 +80,7 @@ resource "google_container_cluster" "cluster" {
   lifecycle {
     ignore_changes = [
       node_version,
-      node_pool.0.version
+      node_pool.0.version,
     ]
   }
 }
@@ -95,7 +95,8 @@ resource "google_container_node_pool" "node_pool" {
   node_locations = var.cluster_node_zones
 
   node_config {
-    preemptible  = false
+    preemptible  = var.node_pools[count.index].preemptible_nodes
+    spot         = var.node_pools[count.index].spot_nodes
     machine_type = var.node_pools[count.index].machine_type
     image_type   = "cos_containerd"
 

@@ -49,6 +49,7 @@ variable "node_pools" {
     min_node_count    = number
     max_node_count    = number
     preemptible_nodes = bool
+    spot_nodes        = bool
   }))
   description = "A list of objects describing the node pools to be associated with the cluster."
 }
