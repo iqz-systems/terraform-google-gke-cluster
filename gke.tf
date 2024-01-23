@@ -42,8 +42,8 @@ resource "google_container_cluster" "cluster" {
     workload_pool = "${data.google_project.current.project_id}.svc.id.goog"
   }
 
-  logging_service    = "logging.googleapis.com/kubernetes"
-  monitoring_service = "monitoring.googleapis.com/kubernetes"
+  # logging_service    = "logging.googleapis.com/kubernetes"
+  # monitoring_service = "monitoring.googleapis.com/kubernetes"
 
   resource_labels = {
     "project" = data.google_project.current.project_id
