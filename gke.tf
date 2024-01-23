@@ -171,4 +171,5 @@ module "gke_auth" {
 
   cluster_name = google_container_cluster.cluster.name
   location     = var.project_region
+  depends_on = [ google_container_cluster.cluster ]
 }
