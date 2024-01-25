@@ -34,13 +34,6 @@ variable "cluster_description" {
   description = "The description to be associated with the cluster."
 }
 
-# Currently in beta
-# variable "enable_notifications" {
-#   type        = bool
-#   default     = false
-#   description = "Creates a pub/sub notification topic and publishes cluster notifications to it."
-# }
-
 variable "node_pools" {
   type = list(object({
     name              = string
