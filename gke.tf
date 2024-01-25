@@ -79,10 +79,9 @@ resource "google_container_node_pool" "node_pool" {
   project        = data.google_project.current.project_id
   location       = var.project_region
   cluster        = google_container_cluster.cluster.name
-  node_locations = var.cluster_node_zones
+  node_locations = var.node_pools[count.index].node_pool_node_zones
 
   node_config {
-    preemptible  = var.node_pools[count.index].preemptible_nodes
     spot         = var.node_pools[count.index].spot_nodes
     machine_type = var.node_pools[count.index].machine_type
     image_type   = "cos_containerd"
@@ -115,6 +114,10 @@ resource "google_container_node_pool" "node_pool" {
     }
   }
 
+  network_config {
+    enable_private_nodes = var.node_pools[count.index].enable_private_nodes
+  }
+
   management {
     auto_repair  = true
     auto_upgrade = true
@@ -123,8 +126,8 @@ resource "google_container_node_pool" "node_pool" {
   initial_node_count = 1
 
   autoscaling {
-    min_node_count = var.node_pools[count.index].min_node_count
-    max_node_count = var.node_pools[count.index].max_node_count
+    total_min_node_count = var.node_pools[count.index].min_node_count
+    total_max_node_count = var.node_pools[count.index].max_node_count
   }
 
   upgrade_settings {
@@ -147,5 +150,5 @@ module "gke_auth" {
 
   cluster_name = google_container_cluster.cluster.name
   location     = var.project_region
-  depends_on = [ google_container_cluster.cluster ]
+  depends_on   = [google_container_cluster.cluster]
 }
