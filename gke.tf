@@ -3,19 +3,6 @@ resource "google_compute_network" "vpc_network" {
   project = data.google_project.current.project_id
 }
 
-# Currently in beta
-# resource "google_pubsub_topic" "cluster_notifications" {
-#   name    = "${var.cluster_name}-notifications"
-#   project = data.google_project.current.project_id
-
-#   labels = {
-#     type         = "cluster_notification"
-#     cluster_name = google_container_cluster.cluster.name
-#   }
-
-#   message_retention_duration = "86400s" # 1 day
-# }
-
 resource "google_container_cluster" "cluster" {
   name        = var.cluster_name
   project     = data.google_project.current.project_id
@@ -42,9 +29,6 @@ resource "google_container_cluster" "cluster" {
     workload_pool = "${data.google_project.current.project_id}.svc.id.goog"
   }
 
-  # logging_service    = "logging.googleapis.com/kubernetes"
-  # monitoring_service = "monitoring.googleapis.com/kubernetes"
-
   resource_labels = {
     "project" = data.google_project.current.project_id
   }
@@ -58,14 +42,6 @@ resource "google_container_cluster" "cluster" {
     cluster_ipv4_cidr_block  = "/16"
     services_ipv4_cidr_block = "/22"
   }
-
-  # Currently in beta
-  # notification_config {
-  #   pubsub {
-  #     enabled = var.enable_notifications
-  #     topic   = google_pubsub_topic.cluster_notifications.id
-  #   }
-  # }
 
   maintenance_policy {
     daily_maintenance_window {
