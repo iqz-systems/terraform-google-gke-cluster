@@ -3,19 +3,6 @@ resource "google_compute_network" "vpc_network" {
   project = data.google_project.current.project_id
 }
 
-# Currently in beta
-# resource "google_pubsub_topic" "cluster_notifications" {
-#   name    = "${var.cluster_name}-notifications"
-#   project = data.google_project.current.project_id
-
-#   labels = {
-#     type         = "cluster_notification"
-#     cluster_name = google_container_cluster.cluster.name
-#   }
-
-#   message_retention_duration = "86400s" # 1 day
-# }
-
 resource "google_container_cluster" "cluster" {
   name        = var.cluster_name
   project     = data.google_project.current.project_id
@@ -42,9 +29,6 @@ resource "google_container_cluster" "cluster" {
     workload_pool = "${data.google_project.current.project_id}.svc.id.goog"
   }
 
-  # logging_service    = "logging.googleapis.com/kubernetes"
-  # monitoring_service = "monitoring.googleapis.com/kubernetes"
-
   resource_labels = {
     "project" = data.google_project.current.project_id
   }
@@ -58,14 +42,6 @@ resource "google_container_cluster" "cluster" {
     cluster_ipv4_cidr_block  = "/16"
     services_ipv4_cidr_block = "/22"
   }
-
-  # Currently in beta
-  # notification_config {
-  #   pubsub {
-  #     enabled = var.enable_notifications
-  #     topic   = google_pubsub_topic.cluster_notifications.id
-  #   }
-  # }
 
   maintenance_policy {
     daily_maintenance_window {
@@ -103,10 +79,9 @@ resource "google_container_node_pool" "node_pool" {
   project        = data.google_project.current.project_id
   location       = var.project_region
   cluster        = google_container_cluster.cluster.name
-  node_locations = var.cluster_node_zones
+  node_locations = var.node_pools[count.index].node_pool_node_zones
 
   node_config {
-    preemptible  = var.node_pools[count.index].preemptible_nodes
     spot         = var.node_pools[count.index].spot_nodes
     machine_type = var.node_pools[count.index].machine_type
     image_type   = "cos_containerd"
@@ -139,6 +114,10 @@ resource "google_container_node_pool" "node_pool" {
     }
   }
 
+  network_config {
+    enable_private_nodes = var.node_pools[count.index].enable_private_nodes
+  }
+
   management {
     auto_repair  = true
     auto_upgrade = true
@@ -147,8 +126,8 @@ resource "google_container_node_pool" "node_pool" {
   initial_node_count = 1
 
   autoscaling {
-    min_node_count = var.node_pools[count.index].min_node_count
-    max_node_count = var.node_pools[count.index].max_node_count
+    total_min_node_count = var.node_pools[count.index].min_node_count
+    total_max_node_count = var.node_pools[count.index].max_node_count
   }
 
   upgrade_settings {
@@ -171,5 +150,5 @@ module "gke_auth" {
 
   cluster_name = google_container_cluster.cluster.name
   location     = var.project_region
-  depends_on = [ google_container_cluster.cluster ]
+  depends_on   = [google_container_cluster.cluster]
 }

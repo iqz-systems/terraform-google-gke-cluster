@@ -34,22 +34,16 @@ variable "cluster_description" {
   description = "The description to be associated with the cluster."
 }
 
-# Currently in beta
-# variable "enable_notifications" {
-#   type        = bool
-#   default     = false
-#   description = "Creates a pub/sub notification topic and publishes cluster notifications to it."
-# }
-
 variable "node_pools" {
   type = list(object({
-    name              = string
-    machine_type      = string
-    cluster_node_tags = list(string)
-    min_node_count    = number
-    max_node_count    = number
-    preemptible_nodes = bool
-    spot_nodes        = bool
+    name                 = string
+    machine_type         = string
+    cluster_node_tags    = list(string)
+    min_node_count       = number
+    max_node_count       = number
+    spot_nodes           = bool
+    node_pool_node_zones = list(string)
+    enable_private_nodes = bool
   }))
   description = "A list of objects describing the node pools to be associated with the cluster."
 }
