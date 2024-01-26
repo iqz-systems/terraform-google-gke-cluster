@@ -17,6 +17,8 @@ resource "google_container_cluster" "cluster" {
   location       = var.cluster_region
   node_locations = var.cluster_node_zones
 
+  deletion_protection = var.disable_deletion_protection == true ? false : true
+
   vertical_pod_autoscaling {
     enabled = true
   }
