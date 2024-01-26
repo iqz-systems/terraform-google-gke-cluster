@@ -56,5 +56,11 @@ variable "node_service_account_name" {
 variable "enable_managed_prometheus" {
   type        = bool
   default     = false
-  description = "Set true to enable managed prometheus. Defaults to false"
+  description = "Set true to enable managed prometheus. Defaults to false."
+}
+
+variable "disable_deletion_protection" {
+  type        = bool
+  default     = false
+  description = "Set true to disable disable deletion protection. Defaults to false."
 }
