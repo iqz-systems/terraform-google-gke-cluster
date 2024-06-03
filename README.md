@@ -9,7 +9,7 @@ This module uses the [google](https://registry.terraform.io/providers/hashicorp/
 ```hcl
 module "gke_cluster" {
   source            = "iqz-systems/gke-cluster/google"
-  version           = "2.0.0"
+  version           = "2.0.1"
 
   project_id          = "my_project"
   project_region      = "us-east1"
