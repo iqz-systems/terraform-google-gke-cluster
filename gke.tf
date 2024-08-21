@@ -79,7 +79,7 @@ resource "google_container_node_pool" "node_pool" {
 
   name           = var.node_pools[count.index].name
   project        = data.google_project.current.project_id
-  location       = var.project_region
+  location       = var.cluster_region
   cluster        = google_container_cluster.cluster.name
   node_locations = var.node_pools[count.index].node_pool_node_zones
 
@@ -143,14 +143,4 @@ resource "google_container_node_pool" "node_pool" {
       initial_node_count,
     ]
   }
-}
-
-# https://github.com/terraform-google-modules/terraform-google-kubernetes-engine/tree/master/modules/auth
-module "gke_auth" {
-  source     = "terraform-google-modules/kubernetes-engine/google//modules/auth"
-  project_id = data.google_project.current.project_id
-
-  cluster_name = google_container_cluster.cluster.name
-  location     = var.project_region
-  depends_on   = [google_container_cluster.cluster]
 }

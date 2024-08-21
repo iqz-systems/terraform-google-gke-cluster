@@ -1,18 +1,3 @@
-variable "project_id" {
-  type        = string
-  description = "The id of the project where the cluster has to be created."
-}
-
-variable "project_region" {
-  type        = string
-  description = "The region where the resources will be created."
-}
-
-variable "project_zone" {
-  type        = string
-  description = "The zone where the resources will be created."
-}
-
 variable "cluster_region" {
   type        = string
   description = "The region where the cluster master has to be created."
