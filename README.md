@@ -40,6 +40,8 @@ module "gke_cluster" {
     preemptible_nodes = true
   }]
   node_service_account_name = "my-service-account"
+  create_vpc_network = false #default is set to true.
+  vpc_network = "my-cluster" #need to provide the vpc_network if create_vpc_network is set to false.
 }
 ```
 
