@@ -49,3 +49,16 @@ variable "disable_deletion_protection" {
   default     = false
   description = "Set true to disable disable deletion protection. Defaults to false."
 }
+
+variable "create_vpc_network" {
+  type        = bool
+  default     = true
+  description = "Set true to create a vpc for gke. Defaults to true."
+}
+
+variable "vpc_network" {
+  type        = string
+  description = "The vpc name where the cluster master has to be created."
+  default = null
+ 
+}
