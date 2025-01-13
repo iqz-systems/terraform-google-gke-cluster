@@ -59,6 +59,6 @@ variable "create_vpc_network" {
 variable "vpc_network" {
   type        = string
   description = "The vpc name where the cluster master has to be created."
-  default = ""
+  default = null
  
 }
