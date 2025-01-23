@@ -24,6 +24,25 @@ resource "google_container_cluster" "cluster" {
     enabled = true
   }
 
+  dynamic "private_cluster_config" {
+    for_each = var.private_cluster_config == null ? [] : [var.private_cluster_config]
+    content {
+      enable_private_endpoint = private_cluster_config.value.enable_private_endpoint
+      enable_private_nodes    = private_cluster_config.value.enable_private_nodes
+      master_ipv4_cidr_block  = private_cluster_config.value.master_ipv4_cidr_block
+    }
+  }
+
+  dynamic "master_authorized_networks_config" {
+    for_each = var.master_authorized_networks_config
+    content {
+      cidr_blocks {
+        cidr_block   = master_authorized_networks_config.value.cidr_block
+        display_name = master_authorized_networks_config.value.display_name
+      }
+    }
+  }
+  
   # Workload identity enables an application running on GKE to authenticate to
   # Google Cloud using a Kubernetes Service Account (KSA). This works by mapping
   # a KSA to a Google Service Account (GSA).
