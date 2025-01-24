@@ -59,6 +59,23 @@ variable "create_vpc_network" {
 variable "vpc_network" {
   type        = string
   description = "The vpc name where the cluster master has to be created."
+  default     = null
+
+}
+
+variable "private_cluster_config" {
+  type = object({
+    enable_private_endpoint = optional(bool, false)
+    enable_private_nodes    = optional(bool, false)
+    master_ipv4_cidr_block  = optional(string, null)
+  })
   default = null
- 
+}
+
+variable "master_authorized_networks_config" {
+  type = list(object({
+    cidr_block   = string
+    display_name = string
+  }))
+  default = []
 }
