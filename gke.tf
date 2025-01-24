@@ -1,5 +1,5 @@
 resource "google_compute_network" "vpc_network" {
-  count = var.create_vpc_network ? 1 : 0
+  count   = var.create_vpc_network ? 1 : 0
   name    = "${var.cluster_name}-network"
   project = data.google_project.current.project_id
 }
@@ -42,7 +42,7 @@ resource "google_container_cluster" "cluster" {
       }
     }
   }
-  
+
   # Workload identity enables an application running on GKE to authenticate to
   # Google Cloud using a Kubernetes Service Account (KSA). This works by mapping
   # a KSA to a Google Service Account (GSA).
