@@ -65,11 +65,17 @@ resource "google_container_cluster" "cluster" {
     services_ipv4_cidr_block = "/22"
   }
 
-  maintenance_policy {
-    daily_maintenance_window {
-      start_time = "02:00" # 2 AM
+  dynamic "maintenance_policy" {
+    for_each = var.maintenance_window != null ? [var.maintenance_window] : []
+    content {
+      recurring_window {
+        start_time = maintenance_policy.value.start_time
+        end_time   = maintenance_policy.value.end_time
+        recurrence = maintenance_policy.value.recurrence
+      }
     }
   }
+
 
   release_channel {
     channel = "REGULAR"
