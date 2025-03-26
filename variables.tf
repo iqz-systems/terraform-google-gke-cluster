@@ -63,6 +63,11 @@ variable "vpc_network" {
 
 }
 
+variable "subnetwork" {
+  type = string
+
+}
+
 variable "private_cluster_config" {
   type = object({
     enable_private_endpoint = optional(bool, false)
@@ -90,6 +95,6 @@ variable "maintenance_window" {
   default = {
     start_time  = "2025-02-28T02:00:00Z"  # 2:00 AM UTC
     end_time    = "2025-02-28T08:00:00Z"  # 8:00 AM UTC
-    recurrence  = "FREQ=WEEKLY;BYDAY=SAT,SUN"
+    recurrence  = "FREQ=WEEKLY;BYDAY=SA,SU"
   }
 }
