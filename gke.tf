@@ -56,6 +56,7 @@ resource "google_container_cluster" "cluster" {
   }
 
   network = (!var.create_vpc_network && var.vpc_network != null) ? var.vpc_network : google_compute_network.vpc_network.0.name
+  subnetwork = var.subnetwork
   # Enable Dataplane V2
   # This also enables network policies by default.
   datapath_provider = "ADVANCED_DATAPATH"
