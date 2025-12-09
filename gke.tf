@@ -55,7 +55,7 @@ resource "google_container_cluster" "cluster" {
     "project" = data.google_project.current.project_id
   }
 
-  network = (!var.create_vpc_network && var.vpc_network != null) ? var.vpc_network : google_compute_network.vpc_network.0.name
+  network    = (!var.create_vpc_network && var.vpc_network != null) ? var.vpc_network : google_compute_network.vpc_network.0.name
   subnetwork = var.subnetwork
   # Enable Dataplane V2
   # This also enables network policies by default.
@@ -84,6 +84,10 @@ resource "google_container_cluster" "cluster" {
 
   logging_config {
     enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]
+  }
+
+  gateway_api_config {
+    channel = "CHANNEL_STANDARD"
   }
 
   monitoring_config {

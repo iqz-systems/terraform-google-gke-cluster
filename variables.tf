@@ -88,13 +88,13 @@ variable "master_authorized_networks_config" {
 variable "maintenance_window" {
   description = "Configuration for the maintenance window."
   type = object({
-    start_time  = string
-    end_time    = string
-    recurrence  = string
+    start_time = string
+    end_time   = string
+    recurrence = string
   })
   default = {
-    start_time  = "2025-02-28T02:00:00Z"  # 2:00 AM UTC
-    end_time    = "2025-02-28T08:00:00Z"  # 8:00 AM UTC
-    recurrence  = "FREQ=WEEKLY;BYDAY=SA,SU"
+    start_time = "2025-02-28T02:00:00Z" # 2:00 AM UTC
+    end_time   = "2025-02-28T08:00:00Z" # 8:00 AM UTC
+    recurrence = "FREQ=WEEKLY;BYDAY=SA,SU"
   }
 }
