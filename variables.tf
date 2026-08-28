@@ -50,6 +50,12 @@ variable "enable_secret_manager_config" {
   description = "Set true to enable secret manager config. Defaults to false."
 }
 
+variable "enable_secret_sync_config" {
+  type        = bool
+  default     = false
+  description = "Set true to enable secret sync config. Defaults to false."
+}
+
 variable "disable_deletion_protection" {
   type        = bool
   default     = false
