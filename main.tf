@@ -8,6 +8,7 @@ terraform {
 }
 
 data "google_project" "current" {
+  project_id = var.project_id
 }
 
 resource "google_service_account" "k8s_sa" {

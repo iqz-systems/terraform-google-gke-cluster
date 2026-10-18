@@ -85,7 +85,7 @@ resource "google_container_cluster" "cluster" {
 
 
   release_channel {
-    channel = "REGULAR"
+    channel = var.release_channel
   }
 
   logging_config {
@@ -123,7 +123,19 @@ resource "google_container_node_pool" "node_pool" {
   node_config {
     spot         = var.node_pools[count.index].spot_nodes
     machine_type = var.node_pools[count.index].machine_type
-    image_type   = "cos_containerd"
+    image_type   = var.node_pools[count.index].image_type
+    disk_size_gb = var.node_pools[count.index].disk_size_gb
+    disk_type    = var.node_pools[count.index].disk_type
+    labels       = var.node_pools[count.index].node_labels
+
+    dynamic "taint" {
+      for_each = var.node_pools[count.index].node_taints
+      content {
+        key    = taint.value.key
+        value  = taint.value.value
+        effect = taint.value.effect
+      }
+    }
 
     metadata = {
       "disable-legacy-endpoints" = "true" # Do not remove this value
@@ -162,7 +174,7 @@ resource "google_container_node_pool" "node_pool" {
     auto_upgrade = true
   }
 
-  initial_node_count = 1
+  initial_node_count = var.node_pools[count.index].initial_node_count
 
   autoscaling {
     total_min_node_count = var.node_pools[count.index].min_node_count

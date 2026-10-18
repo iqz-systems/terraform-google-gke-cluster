@@ -1,3 +1,9 @@
+variable "project_id" {
+  type        = string
+  default     = null
+  description = "The project in which the resources are created. When null, the project of the google provider configuration is used."
+}
+
 variable "cluster_region" {
   type        = string
   description = "The region where the cluster master has to be created."
@@ -29,8 +35,23 @@ variable "node_pools" {
     spot_nodes           = bool
     node_pool_node_zones = list(string)
     enable_private_nodes = bool
+    node_labels          = optional(map(string), {})
+    node_taints = optional(list(object({
+      key    = string
+      value  = string
+      effect = string
+    })), [])
+    disk_size_gb       = optional(number, null)
+    disk_type          = optional(string, null)
+    initial_node_count = optional(number, 1)
+    image_type         = optional(string, "cos_containerd")
   }))
   description = "A list of objects describing the node pools to be associated with the cluster."
+
+  validation {
+    condition     = alltrue(flatten([for pool in var.node_pools : [for taint in pool.node_taints : contains(["NO_SCHEDULE", "PREFER_NO_SCHEDULE", "NO_EXECUTE"], taint.effect)]]))
+    error_message = "Each node taint effect must be one of NO_SCHEDULE, PREFER_NO_SCHEDULE or NO_EXECUTE."
+  }
 }
 
 variable "node_service_account_name" {
@@ -108,5 +129,16 @@ variable "maintenance_window" {
     start_time = "2025-02-28T02:00:00Z" # 2:00 AM UTC
     end_time   = "2025-02-28T08:00:00Z" # 8:00 AM UTC
     recurrence = "FREQ=WEEKLY;BYDAY=SA,SU"
+  }
+}
+
+variable "release_channel" {
+  type        = string
+  default     = "REGULAR"
+  description = "The GKE release channel of the cluster. Defaults to REGULAR."
+
+  validation {
+    condition     = contains(["UNSPECIFIED", "RAPID", "REGULAR", "STABLE", "EXTENDED"], var.release_channel)
+    error_message = "The release channel must be one of UNSPECIFIED, RAPID, REGULAR, STABLE or EXTENDED."
   }
 }
