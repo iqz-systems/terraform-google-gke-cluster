@@ -31,10 +31,11 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: Changes that would break existing callers (F11, F12) are held for a single major release, so that callers migrate once. All other backlog items will be released as minor versions. The user approved this plan and release grouping on 2026-11-01.
 - 2026-11-01: For F2, a missing `vpc_network` with `create_vpc_network = false` will be a hard error from a precondition on the cluster, while a `vpc_network` ignored because `create_vpc_network = true` will produce a warning from a `check` block. A hard error in the second case would break existing callers' plans. A precondition is used instead of a cross-variable validation, which would require Terraform 1.9; the `check` block requires Terraform 1.5, which is below the 1.7 already required by the tests.
 - 2026-11-01: F3 was first recorded as a defect, on the assumption that a long service account ID would plan successfully and fail at apply. The test run showed that the google provider rejects it at plan time, so F3 is a feature that lets callers with long cluster names set the ID. The module adds no check of its own for the derived ID, because the provider's validation runs before any module precondition and already names the invalid value.
+- 2026-11-01: F4 is folded into F12. The module-created network is auto-mode, so adding a managed subnetwork would force the network, and the cluster with it, to be replaced; a usable network would also need a Cloud Router, Cloud NAT and firewall rules, which belong in a separate networking configuration. The user confirmed that every known caller sets `create_vpc_network = false`, so no interim change is needed and no state migration is planned.
 
 ## Verification Plan
 
-- Every change will be covered by plan-time tests in `tests/*.tftest.hcl`, run with `terraform init -backend=false && terraform test`. Each defect (F1 to F4) will first receive a test that fails against the current code, and the fix will be complete when that test passes.
+- Every change will be covered by plan-time tests in `tests/*.tftest.hcl`, run with `terraform init -backend=false && terraform test`. Each defect will first receive a test that fails against the current code, and the fix will be complete when that test passes.
 - Input validation will be tested with `expect_failures = [var.<name>]`, including a passing case for each valid combination.
 - Every change will pass `terraform fmt -check -recursive` and `terraform validate`. Once F10 is complete, these checks and the tests will also run in CI on every pull request.
 - Behaviour that only the GCP API enforces, such as the service account ID length and the authorized networks block limit, will additionally be checked with `terraform plan -lock=false` from an example configuration against a non-production project before each release.
@@ -47,7 +48,6 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ### Defects
 
-- [ ] F4: Make the module-created VPC usable. **Exists**: `google_compute_network.vpc_network` is an auto-mode network with no subnetwork managed by the module, while `subnetwork` remains a required input whose only working value is the auto-created regional subnet. **Missing**: a decision between creating a custom-mode network with a subnetwork and secondary ranges (making `subnetwork` optional when the module creates the network) and removing network creation in the next major release. This decision needs the user's input before implementation.
 
 ### Outputs and configuration
 
@@ -63,7 +63,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 ### Major release
 
 - [ ] F11: Key node pools by name. **Exists**: `google_container_node_pool.node_pool` uses `count` over `var.node_pools`, so removing or reordering an entry recreates every pool after it. **Missing**: `for_each` keyed by `name`, release notes with the `terraform state mv` commands callers must run (for example from `module.gke_cluster.google_container_node_pool.node_pool[0]` to `module.gke_cluster.google_container_node_pool.node_pool["app-nodes"]`), and a test that removing the first pool leaves the second pool's address unchanged.
-- [ ] F12: Rename `disable_deletion_protection` to `deletion_protection` (default `true`), remove `roles/storage.objectViewer` by default (see F6), and apply the outcome of F4 if network creation is removed. **Nothing exists** beyond the current inputs.
+- [ ] F12: Rename `disable_deletion_protection` to `deletion_protection` (default `true`), remove `roles/storage.objectViewer` by default (see F6), and remove network creation (formerly F4): delete `create_vpc_network` and `google_compute_network.vpc_network`, make `vpc_network` and `subnetwork` required, and remove the `vpc_network_ignored` check and the cluster precondition that F2 added. The release notes will tell callers to delete `create_vpc_network = false` from their module call. **Nothing exists** beyond the current inputs.
 - [ ] F13: Replace the deprecated default node pool removal. **Exists**: `gke.tf` sets `initial_node_count = 1` and `remove_default_node_pool = true`; with the resolved provider (`hashicorp/google` 8.9.0, allowed by `>=7.12.0`) every plan warns that `remove_default_node_pool` is deprecated and that clusters on 1.36.4-gke.1469000 or later should omit `initial_node_count` and `node_config` (or set `initial_node_count = 0`) instead. **Missing**: confirm the minimum cluster version callers run, decide whether the module's provider constraint should move to `>= 8`, switch to the new form, and check with a plan against an existing cluster that the change does not force the cluster to be replaced; if it does, keep it in this major release.
 
 ## Completed
@@ -86,8 +86,8 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ## Next Steps
 
-1. F4: the module-created VPC cannot be used without a matching `subnetwork`; this needs a decision between creating a subnetwork and removing network creation in the major release.
-2. F6: the node service account roles should move to `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader`.
+1. F6: the node service account roles should move to `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader`.
+2. F7: the redundant OAuth scopes and obsolete metadata can be removed, subject to confirming that the change does not force node pool replacement.
 
 ## Bugs Fixed During Verification
 
@@ -108,3 +108,4 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F3 completed; all 18 test runs pass.
 - 2026-11-01: F5 started; tests and outputs written.
 - 2026-11-01: F5 completed; all 20 test runs pass. Added a manual release check for the CA certificate output, which the mock provider cannot populate.
+- 2026-11-01: Folded F4 into F12 after the user confirmed no caller uses the module-created network.
