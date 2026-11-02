@@ -39,16 +39,16 @@ module "gke_cluster" {
       enable_private_nodes = true
     },
     {
-      name                 = "databolt-nodes"
+      name                 = "analytics-nodes"
       machine_type         = "n2-highmem-4"
-      cluster_node_tags    = ["my-cluster", "databolt-nodes"]
+      cluster_node_tags    = ["my-cluster", "analytics-nodes"]
       min_node_count       = 0
       max_node_count       = 3
       spot_nodes           = true
       node_pool_node_zones = ["us-east1-b"]
       enable_private_nodes = true
-      node_labels          = { workload = "databolt" }
-      node_taints          = [{ key = "dedicated", value = "databolt", effect = "NO_EXECUTE" }]
+      node_labels          = { workload = "analytics" }
+      node_taints          = [{ key = "dedicated", value = "analytics", effect = "NO_EXECUTE" }]
       disk_size_gb         = 200
       disk_type            = "pd-ssd"
       initial_node_count   = 0

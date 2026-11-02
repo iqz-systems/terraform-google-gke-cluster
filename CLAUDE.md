@@ -33,6 +33,7 @@ terraform test -filter=tests/node_pools.tftest.hcl -verbose
 
 ## Conventions
 
+- This repository is public. Do not write the names of internal GCP projects, clusters, kubectl contexts, workloads, image paths or other organisation-internal details into any file here, including `PLAN.md`, tests, examples, comments and commit messages. Use generic placeholders such as `my-cluster` or `app-nodes`, and describe findings from internal systems in general terms (for example, "one cluster" or "every cluster that uses the module").
 - The README's Usage example, Inputs and Outputs sections are the module's user-facing documentation. Update them whenever a variable or output is added, changed or removed, and bump the `version` in the Usage example when releasing.
 - New optional inputs should default to the current behaviour so the change is non-breaking for existing consumers.
 - `.editorconfig`: 2-space indent, LF, final newline (4-space indent in Markdown).
