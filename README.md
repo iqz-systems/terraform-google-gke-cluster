@@ -107,6 +107,25 @@ module "gke_cluster" {
 
 - `service_account_email`: The email of the service account associated with the cluster.
 - `service_account_id`: The id of the service account associated with the cluster.
+- `cluster_name`: The name of the cluster.
+- `cluster_id`: The ID of the cluster, in the form `projects/<project>/locations/<location>/clusters/<name>`.
+- `cluster_location`: The location of the cluster, which is a region for a regional cluster or a zone for a zonal cluster.
+- `cluster_endpoint`: The IP address of the cluster's control plane endpoint.
+- `cluster_ca_certificate` (sensitive): The base64-encoded public CA certificate of the cluster's control plane.
+- `network_name`: The name of the VPC network the cluster uses.
+- `node_pool_names`: The names of the cluster's node pools, in the order of the `node_pools` input.
+
+The endpoint and CA certificate can be used to configure the `kubernetes` and `helm` providers:
+
+```hcl
+data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host                   = "https://${module.gke_cluster.cluster_endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(module.gke_cluster.cluster_ca_certificate)
+}
+```
 
 ## Tests
 

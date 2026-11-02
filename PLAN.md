@@ -38,6 +38,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - Input validation will be tested with `expect_failures = [var.<name>]`, including a passing case for each valid combination.
 - Every change will pass `terraform fmt -check -recursive` and `terraform validate`. Once F10 is complete, these checks and the tests will also run in CI on every pull request.
 - Behaviour that only the GCP API enforces, such as the service account ID length and the authorized networks block limit, will additionally be checked with `terraform plan -lock=false` from an example configuration against a non-production project before each release.
+- The mock provider cannot populate the cluster's `master_auth` block, so the value of the `cluster_ca_certificate` output will be checked before each release with `terraform plan -lock=false` and `terraform output` from an example configuration against an existing non-production cluster.
 - The README's Usage, Inputs and Outputs sections will be checked against `variables.tf` and `outputs.tf` for every change to an input or output.
 
 ## Backlog
@@ -50,7 +51,6 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ### Outputs and configuration
 
-- [ ] F5: Add cluster outputs. **Exists**: only `service_account_email` and `service_account_id` in `outputs.tf`. **Missing**: outputs for the cluster `name`, `id`, `location` and `endpoint`, `master_auth[0].cluster_ca_certificate` (marked sensitive), the network name, and the node pool names. Document them in the README.
 - [ ] F6: Update the node service account roles. **Exists**: `roles/storage.objectViewer`, `roles/logging.logWriter` and `roles/monitoring.metricWriter` at project level in `main.tf`. **Missing**: grant `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader` instead. Removing `roles/storage.objectViewer` can break callers who still pull from Container Registry, so it will be controlled by an input that defaults to keeping the role until the major release.
 - [ ] F7: Remove redundant OAuth scopes. **Exists**: `gke.tf` sets `cloud-platform` and six narrower scopes that it already includes. **Missing**: keep only `https://www.googleapis.com/auth/cloud-platform`; remove the obsolete `disable-legacy-endpoints` metadata entry. Confirm with a plan against an existing cluster that the change does not force node pool replacement before releasing it as a minor version; if it does, move it to the major release.
 - [ ] F8: Allow named secondary ranges for pods and services. **Exists**: `ip_allocation_policy` sets the fixed netmasks `/16` and `/22`. **Missing**: optional `cluster_secondary_range_name` and `services_secondary_range_name` inputs; when they are null, the current netmasks are used. Add tests for both modes.
@@ -82,16 +82,18 @@ The calling configuration supplies the inputs. The module resolves the project t
 - [x] F1: Support more than one master authorized network. All entries in `master_authorized_networks_config` are now emitted as `cidr_blocks` inside a single `master_authorized_networks_config` block, which is omitted when the list is empty. Completed 2026-11-01.
 - [x] F2: Validate the VPC network inputs. With `create_vpc_network = false` and no `vpc_network`, a precondition on the cluster now fails with a clear message; with `create_vpc_network = true` and `vpc_network` set, a `check` block warns that the value is ignored. The `network` expression no longer indexes an empty resource list. Completed 2026-11-01.
 - [x] F3: Allow the node service account ID to be set. The optional `node_service_account_id` input overrides the default `<cluster_name>-sa`, so clusters with names longer than 27 characters can use the module; invalid values are rejected by a variable validation. Completed 2026-11-01.
+- [x] F5: Add cluster outputs. The module now outputs `cluster_name`, `cluster_id`, `cluster_location`, `cluster_endpoint`, `cluster_ca_certificate` (sensitive), `network_name` and `node_pool_names`, documented in the README with an example `kubernetes` provider configuration. The value of `cluster_ca_certificate` remains to be checked against a real cluster before release, as set out in the Verification Plan. Completed 2026-11-01.
 
 ## Next Steps
 
-1. F5: callers need the cluster endpoint and CA certificate to configure the `kubernetes` and `helm` providers.
-2. F4: the module-created VPC cannot be used without a matching `subnetwork`; this needs a decision between creating a subnetwork and removing network creation in the major release.
+1. F4: the module-created VPC cannot be used without a matching `subnetwork`; this needs a decision between creating a subnetwork and removing network creation in the major release.
+2. F6: the node service account roles should move to `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader`.
 
 ## Bugs Fixed During Verification
 
 - 2026-11-01, F1: a plan with two or more entries in `master_authorized_networks_config` failed with "Too many master_authorized_networks_config blocks". **Cause**: `gke.tf` generated one `master_authorized_networks_config` block per list entry, and the provider allows at most one. **Fix**: a single block, present only when the list is non-empty, with a `dynamic "cidr_blocks"` over the list. **Test**: `multiple_authorized_networks` in `tests/master_authorized_networks.tftest.hcl` (with `no_authorized_networks_by_default` and `single_authorized_network` covering the other cases).
 - 2026-11-01, F2: a plan with `create_vpc_network = false` and `vpc_network = null` failed with "Invalid index" on `google_compute_network.vpc_network.0.name`, and with `create_vpc_network = true` a supplied `vpc_network` was silently ignored. **Cause**: the `network` expression in `gke.tf` fell back to the module-created network whenever `vpc_network` was null, without checking `create_vpc_network`, and nothing validated the combination. **Fix**: `network` is selected by `create_vpc_network` alone, a cluster precondition requires `vpc_network` when `create_vpc_network` is false, and `check "vpc_network_ignored"` warns when the value is ignored. **Test**: `missing_vpc_network_rejected` and `ignored_vpc_network_warned` in `tests/network.tftest.hcl` (with `module_vpc_created_by_default` and `existing_vpc_used` covering the valid cases).
+- 2026-11-01, F5: every test run failed with "Invalid index" on the new `cluster_ca_certificate` output. **Cause**: the output read `master_auth[0].cluster_ca_certificate`, and `master_auth` is an empty list during plan for a cluster that does not exist yet. **Fix**: the output uses `one(google_container_cluster.cluster.master_auth[*].cluster_ca_certificate)`, which is null while the list is empty. **Test**: `cluster_outputs` in `tests/outputs.tftest.hcl` asserts the output is null without an error while `master_auth` is empty; the full suite reproduced the failure.
 
 ## Changelog
 
@@ -104,3 +106,5 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F3 started with a reproducing test.
 - 2026-11-01: Reclassified F3 from a defect to a feature after the test run; the long-name test was removed because the provider already rejects the ID at plan time.
 - 2026-11-01: F3 completed; all 18 test runs pass.
+- 2026-11-01: F5 started; tests and outputs written.
+- 2026-11-01: F5 completed; all 20 test runs pass. Added a manual release check for the CA certificate output, which the mock provider cannot populate.
