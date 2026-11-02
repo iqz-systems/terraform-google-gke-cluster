@@ -40,11 +40,14 @@ resource "google_container_cluster" "cluster" {
   }
 
   dynamic "master_authorized_networks_config" {
-    for_each = var.master_authorized_networks_config
+    for_each = length(var.master_authorized_networks_config) > 0 ? [1] : []
     content {
-      cidr_blocks {
-        cidr_block   = master_authorized_networks_config.value.cidr_block
-        display_name = master_authorized_networks_config.value.display_name
+      dynamic "cidr_blocks" {
+        for_each = var.master_authorized_networks_config
+        content {
+          cidr_block   = cidr_blocks.value.cidr_block
+          display_name = cidr_blocks.value.display_name
+        }
       }
     }
   }

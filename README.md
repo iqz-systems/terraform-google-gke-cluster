@@ -22,6 +22,11 @@ module "gke_cluster" {
   create_vpc_network = false
   vpc_network        = "my-vpc"
 
+  master_authorized_networks_config = [
+    { cidr_block = "10.0.0.0/8", display_name = "internal" },
+    { cidr_block = "203.0.113.0/24", display_name = "office" },
+  ]
+
   node_pools = [
     {
       name                 = "app-nodes"
@@ -76,7 +81,7 @@ module "gke_cluster" {
 - `vpc_network` (string, default `null`): The name of the VPC network. This is required when `create_vpc_network` is false.
 - `subnetwork` (string, required): The subnetwork in which the cluster is created.
 - `private_cluster_config` (object, default `null`): The private cluster settings, with the optional attributes `enable_private_endpoint` (default `false`), `enable_private_nodes` (default `false`) and `master_ipv4_cidr_block` (default `null`).
-- `master_authorized_networks_config` (list of object, default `[]`): The networks that may reach the control plane, each with `cidr_block` and `display_name`.
+- `master_authorized_networks_config` (list of object, default `[]`): The networks that may reach the control plane, each with `cidr_block` and `display_name`. When the list is empty, no authorized networks are configured.
 
 ### Node pools
 
