@@ -103,6 +103,10 @@ module "gke_cluster" {
 - `initial_node_count` (number, default `1`): The number of nodes created with the pool. A value of 0 creates the pool without nodes. Later changes to this value are ignored.
 - `image_type` (string, default `"cos_containerd"`): The node image type.
 
+## Node service account
+
+The module creates a service account for the cluster nodes and grants it `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader` in the cluster's project. Nodes that pull images from Artifact Registry repositories in another project need `roles/artifactregistry.reader` granted on those repositories separately.
+
 ## Outputs
 
 - `service_account_email`: The email of the service account associated with the cluster.

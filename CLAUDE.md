@@ -20,11 +20,11 @@ terraform test -filter=tests/node_pools.tftest.hcl -verbose
 
 ## Architecture
 
-- `main.tf`: provider requirement, the `google_project` data source (resolves `var.project_id`, falling back to the provider's project when null), the node service account, and its three project IAM roles (storage object viewer, log writer, metric writer). Every resource takes `project` from `data.google_project.current.project_id`, not from the variable directly.
+- `main.tf`: provider requirement, the `google_project` data source (resolves `var.project_id`, falling back to the provider's project when null), the node service account, and its project IAM roles (`roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader`, granted by one `for_each` resource). Every resource takes `project` from `data.google_project.current.project_id`, not from the variable directly.
 - `gke.tf`: the optional VPC, the cluster, and the node pools.
   - The cluster is created with a throwaway default pool (`initial_node_count = 1`, `remove_default_node_pool = true`); real capacity lives only in `google_container_node_pool.node_pool`.
   - `location = var.cluster_region` on both the cluster and the node pools, so passing a zone there produces a zonal cluster. Per-pool zones come from `node_pool_node_zones`.
-  - `network` falls back to the module-created VPC (`google_compute_network.vpc_network[0]`) unless `create_vpc_network = false` and `vpc_network` is set.
+  - `network` is the module-created VPC (`google_compute_network.vpc_network[0]`) when `create_vpc_network` is true, otherwise `var.vpc_network`. A cluster precondition requires `vpc_network` when `create_vpc_network` is false, and `check "vpc_network_ignored"` warns when it is set but ignored. All known callers use an existing network, and network creation is planned for removal in the next major release.
   - Hard-coded, opinionated settings: Dataplane V2 (`ADVANCED_DATAPATH`), VPA, Gateway API standard channel, `/16` pod and `/22` service ranges, `GKE_METADATA` workload metadata, GCFS, surge upgrades (1/0), auto-repair and auto-upgrade.
   - Node pools are created with `count` over `var.node_pools`, so they are addressed by list index. Reordering or removing an entry from the middle of the list forces recreation of the pools after it.
   - `lifecycle.ignore_changes` covers `node_count` and `initial_node_count` on pools and `node_version` on the cluster, because the autoscaler and release channel change them out of band.
