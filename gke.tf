@@ -15,6 +15,14 @@ resource "google_container_cluster" "cluster" {
     enabled = var.enable_secret_sync_config
   }
 
+  # Omitted when null, so a setting made outside Terraform is left as it is.
+  dynamic "cost_management_config" {
+    for_each = var.enable_cost_allocation == null ? [] : [var.enable_cost_allocation]
+    content {
+      enabled = cost_management_config.value
+    }
+  }
+
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.

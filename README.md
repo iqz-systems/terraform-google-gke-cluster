@@ -73,6 +73,7 @@ module "gke_cluster" {
 - `enable_managed_prometheus` (bool, default `false`): Enables managed Prometheus.
 - `enable_secret_manager_config` (bool, default `false`): Enables the Secret Manager add-on.
 - `enable_secret_sync_config` (bool, default `false`): Enables the secret sync configuration.
+- `enable_cost_allocation` (bool, default `null`): Enables GKE cost allocation when true and disables it when false. Cost allocation adds the cluster and namespace names as labels in the billing export to BigQuery, which must be configured for the billing account. When null, the module does not manage the setting, and a value set outside Terraform is left unchanged.
 - `disable_deletion_protection` (bool, default `false`): Disables deletion protection on the cluster.
 - `maintenance_window` (object, default Saturday and Sunday from 02:00 to 08:00 UTC): The recurring maintenance window, with the attributes `start_time`, `end_time` and `recurrence`. Set to null to remove the window.
 - `resource_labels` (map of string, default `{}`): Extra labels added to the cluster. The `project` label is always set to the cluster's project and cannot be overridden.
