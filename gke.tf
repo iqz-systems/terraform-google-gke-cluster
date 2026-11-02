@@ -164,9 +164,9 @@ resource "google_container_node_pool" "node_pool" {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
     service_account = google_service_account.k8s_sa.email
     oauth_scopes = [
-      # Refer: https://cloud.google.com/sdk/gcloud/reference/container/node-pools/create
+      # The scopes after cloud-platform are redundant; they are kept because changing scopes replaces node pools.
       "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/devstorage.read_only", # Allows image pull from GCR
+      "https://www.googleapis.com/auth/devstorage.read_only",
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
       "https://www.googleapis.com/auth/service.management.readonly",

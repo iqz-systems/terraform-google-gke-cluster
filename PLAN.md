@@ -33,6 +33,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F3 was first recorded as a defect, on the assumption that a long service account ID would plan successfully and fail at apply. The test run showed that the google provider rejects it at plan time, so F3 is a feature that lets callers with long cluster names set the ID. The module adds no check of its own for the derived ID, because the provider's validation runs before any module precondition and already names the invalid value.
 - 2026-11-01: F4 is folded into F12. The module-created network is auto-mode, so adding a managed subnetwork would force the network, and the cluster with it, to be replaced; a usable network would also need a Cloud Router, Cloud NAT and firewall rules, which belong in a separate networking configuration. The user confirmed that every known caller sets `create_vpc_network = false`, so no interim change is needed and no state migration is planned.
 - 2026-11-01: F6 removes `roles/storage.objectViewer` from the node service account without an opt-in input, because the user does not expect any workload to pull from Container Registry. If a workload still does, its new pods will fail with ImagePullBackOff after the change is applied, so the clusters that use the module will be checked for Container Registry images before release.
+- 2026-11-01: F7 (removing the redundant OAuth scopes and the `disable-legacy-endpoints` metadata) was dropped. In provider 8.9.0, `oauth_scopes` and `metadata` in `node_config` are `ForceNew` and the node pool resource does not override this, so changing the scopes would replace every caller's node pools; omitting `oauth_scopes` would give new pools GKE's default scopes without `cloud-platform`. The change would not alter behaviour, so it does not justify a node pool replacement even in a major release. A comment in `gke.tf` records why the scopes are kept.
 
 ## Verification Plan
 
@@ -53,7 +54,6 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ### Outputs and configuration
 
-- [ ] F7: Remove redundant OAuth scopes. **Exists**: `gke.tf` sets `cloud-platform` and six narrower scopes that it already includes. **Missing**: keep only `https://www.googleapis.com/auth/cloud-platform`; remove the obsolete `disable-legacy-endpoints` metadata entry. Confirm with a plan against an existing cluster that the change does not force node pool replacement before releasing it as a minor version; if it does, move it to the major release.
 - [ ] F8: Allow named secondary ranges for pods and services. **Exists**: `ip_allocation_policy` sets the fixed netmasks `/16` and `/22`. **Missing**: optional `cluster_secondary_range_name` and `services_secondary_range_name` inputs; when they are null, the current netmasks are used. Add tests for both modes.
 - [ ] F9: Expose fixed settings as optional inputs. **Exists**: cluster `resource_labels` contain only `project`; logging components include `WORKLOADS`; node pools use `max_surge = 1` and `max_unavailable = 0`; secure boot is not enabled; `max_pods_per_node` is not set. **Missing**: an optional `resource_labels` map merged with the `project` label, an optional `logging_components` list, optional per-pool `max_surge`, `max_unavailable`, `max_pods_per_node` and `enable_secure_boot` attributes, and validations that `min_node_count <= max_node_count` and that pool names are unique. Every default will reproduce the current behaviour.
 
@@ -88,8 +88,8 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ## Next Steps
 
-1. F7: the redundant OAuth scopes and obsolete metadata can be removed, subject to confirming that the change does not force node pool replacement.
-2. F8: callers on Shared VPC or pre-planned IP space need named secondary ranges for pods and services.
+1. F8: callers on Shared VPC or pre-planned IP space need named secondary ranges for pods and services.
+2. F9: expose the remaining fixed settings as optional inputs, with defaults that keep the current behaviour.
 
 ## Bugs Fixed During Verification
 
@@ -115,3 +115,4 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F6 completed; all 21 test runs pass. Added the pre-release Container Registry image check to the Verification Plan.
 - 2026-11-01: Recorded the result of the Container Registry image check for four clusters.
 - 2026-11-01: Completed the Container Registry image check with the platform and iqz-databolt clusters.
+- 2026-11-01: Dropped F7 because changing node pool OAuth scopes forces node pool replacement.
