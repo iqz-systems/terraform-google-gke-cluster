@@ -40,11 +40,14 @@ resource "google_container_cluster" "cluster" {
   }
 
   dynamic "master_authorized_networks_config" {
-    for_each = var.master_authorized_networks_config
+    for_each = length(var.master_authorized_networks_config) > 0 ? [1] : []
     content {
-      cidr_blocks {
-        cidr_block   = master_authorized_networks_config.value.cidr_block
-        display_name = master_authorized_networks_config.value.display_name
+      dynamic "cidr_blocks" {
+        for_each = var.master_authorized_networks_config
+        content {
+          cidr_block   = cidr_blocks.value.cidr_block
+          display_name = cidr_blocks.value.display_name
+        }
       }
     }
   }
@@ -57,19 +60,20 @@ resource "google_container_cluster" "cluster" {
     workload_pool = "${data.google_project.current.project_id}.svc.id.goog"
   }
 
-  resource_labels = {
-    "project" = data.google_project.current.project_id
-  }
+  resource_labels = merge(var.resource_labels, { "project" = data.google_project.current.project_id })
 
-  network    = (!var.create_vpc_network && var.vpc_network != null) ? var.vpc_network : google_compute_network.vpc_network.0.name
+  network    = var.create_vpc_network ? google_compute_network.vpc_network[0].name : var.vpc_network
   subnetwork = var.subnetwork
   # Enable Dataplane V2
   # This also enables network policies by default.
   datapath_provider = "ADVANCED_DATAPATH"
 
+  # The provider rejects CIDR blocks and secondary range names together, so exactly one pair is set.
   ip_allocation_policy {
-    cluster_ipv4_cidr_block  = "/16"
-    services_ipv4_cidr_block = "/22"
+    cluster_ipv4_cidr_block       = var.secondary_range_names == null ? "/16" : null
+    services_ipv4_cidr_block      = var.secondary_range_names == null ? "/22" : null
+    cluster_secondary_range_name  = var.secondary_range_names == null ? null : var.secondary_range_names.pods
+    services_secondary_range_name = var.secondary_range_names == null ? null : var.secondary_range_names.services
   }
 
   dynamic "maintenance_policy" {
@@ -89,7 +93,7 @@ resource "google_container_cluster" "cluster" {
   }
 
   logging_config {
-    enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]
+    enable_components = var.logging_components
   }
 
   gateway_api_config {
@@ -108,6 +112,19 @@ resource "google_container_cluster" "cluster" {
       node_version,
       node_pool.0.version,
     ]
+
+    precondition {
+      condition     = var.create_vpc_network || var.vpc_network != null
+      error_message = "vpc_network must be set when create_vpc_network is false."
+    }
+  }
+}
+
+# A warning rather than an error so existing callers are not broken.
+check "vpc_network_ignored" {
+  assert {
+    condition     = !var.create_vpc_network || var.vpc_network == null
+    error_message = "vpc_network is ignored because create_vpc_network is true; the module-created network is used."
   }
 }
 
@@ -148,9 +165,9 @@ resource "google_container_node_pool" "node_pool" {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
     service_account = google_service_account.k8s_sa.email
     oauth_scopes = [
-      # Refer: https://cloud.google.com/sdk/gcloud/reference/container/node-pools/create
+      # The scopes after cloud-platform are redundant; they are kept because changing scopes replaces node pools.
       "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/devstorage.read_only", # Allows image pull from GCR
+      "https://www.googleapis.com/auth/devstorage.read_only",
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
       "https://www.googleapis.com/auth/service.management.readonly",
@@ -163,6 +180,15 @@ resource "google_container_node_pool" "node_pool" {
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
+
+    # Emitted only when enabled: the provider treats this block as ForceNew and Computed, so setting it on existing pools could replace them.
+    dynamic "shielded_instance_config" {
+      for_each = var.node_pools[count.index].enable_secure_boot ? [1] : []
+      content {
+        enable_secure_boot          = true
+        enable_integrity_monitoring = true
+      }
+    }
   }
 
   network_config {
@@ -174,6 +200,7 @@ resource "google_container_node_pool" "node_pool" {
     auto_upgrade = true
   }
 
+  max_pods_per_node  = var.node_pools[count.index].max_pods_per_node
   initial_node_count = var.node_pools[count.index].initial_node_count
 
   autoscaling {
@@ -182,8 +209,8 @@ resource "google_container_node_pool" "node_pool" {
   }
 
   upgrade_settings {
-    max_surge       = 1
-    max_unavailable = 0
+    max_surge       = var.node_pools[count.index].max_surge
+    max_unavailable = var.node_pools[count.index].max_unavailable
   }
 
   lifecycle {

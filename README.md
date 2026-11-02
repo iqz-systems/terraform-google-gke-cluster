@@ -22,6 +22,11 @@ module "gke_cluster" {
   create_vpc_network = false
   vpc_network        = "my-vpc"
 
+  master_authorized_networks_config = [
+    { cidr_block = "10.0.0.0/8", display_name = "internal" },
+    { cidr_block = "203.0.113.0/24", display_name = "office" },
+  ]
+
   node_pools = [
     {
       name                 = "app-nodes"
@@ -64,19 +69,23 @@ module "gke_cluster" {
 - `cluster_description` (string, default `""`): The description associated with the cluster.
 - `release_channel` (string, default `"REGULAR"`): The GKE release channel. Allowed values are UNSPECIFIED, RAPID, REGULAR, STABLE and EXTENDED.
 - `node_service_account_name` (string, required): The display name of the service account that is created for the cluster nodes.
+- `node_service_account_id` (string, default `null`): The account ID of the node service account. When null, `<cluster_name>-sa` is used. Service account IDs are limited to 30 characters, so this must be set when the cluster name is longer than 27 characters.
 - `enable_managed_prometheus` (bool, default `false`): Enables managed Prometheus.
 - `enable_secret_manager_config` (bool, default `false`): Enables the Secret Manager add-on.
 - `enable_secret_sync_config` (bool, default `false`): Enables the secret sync configuration.
 - `disable_deletion_protection` (bool, default `false`): Disables deletion protection on the cluster.
 - `maintenance_window` (object, default Saturday and Sunday from 02:00 to 08:00 UTC): The recurring maintenance window, with the attributes `start_time`, `end_time` and `recurrence`. Set to null to remove the window.
+- `resource_labels` (map of string, default `{}`): Extra labels added to the cluster. The `project` label is always set to the cluster's project and cannot be overridden.
+- `logging_components` (list of string, default `["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]`): The components whose logs are sent to Cloud Logging. `WORKLOADS` sends container logs, which are billed by volume.
 
 ### Networking
 
 - `create_vpc_network` (bool, default `true`): Creates a VPC network for the cluster.
-- `vpc_network` (string, default `null`): The name of the VPC network. This is required when `create_vpc_network` is false.
+- `vpc_network` (string, default `null`): The name of the VPC network. This is required when `create_vpc_network` is false. When `create_vpc_network` is true, the value is ignored and the plan shows a warning.
 - `subnetwork` (string, required): The subnetwork in which the cluster is created.
+- `secondary_range_names` (object, default `null`): The names of existing secondary ranges in the subnetwork, with the attributes `pods` and `services`, both required. Use this for a Shared VPC or for pre-planned IP ranges. When null, GKE creates a `/16` range for pods and a `/22` range for services. Changing this value on an existing cluster replaces the cluster, so it should be set only when the cluster is created.
 - `private_cluster_config` (object, default `null`): The private cluster settings, with the optional attributes `enable_private_endpoint` (default `false`), `enable_private_nodes` (default `false`) and `master_ipv4_cidr_block` (default `null`).
-- `master_authorized_networks_config` (list of object, default `[]`): The networks that may reach the control plane, each with `cidr_block` and `display_name`.
+- `master_authorized_networks_config` (list of object, default `[]`): The networks that may reach the control plane, each with `cidr_block` and `display_name`. When the list is empty, no authorized networks are configured.
 
 ### Node pools
 
@@ -96,11 +105,40 @@ module "gke_cluster" {
 - `disk_type` (string, default `null`): The boot disk type, for example `pd-balanced` or `pd-ssd`. When null, the GKE default is used.
 - `initial_node_count` (number, default `1`): The number of nodes created with the pool. A value of 0 creates the pool without nodes. Later changes to this value are ignored.
 - `image_type` (string, default `"cos_containerd"`): The node image type.
+- `max_surge` (number, default `1`): The number of extra nodes created during an upgrade.
+- `max_unavailable` (number, default `0`): The number of nodes that can be unavailable during an upgrade. `max_surge` and `max_unavailable` cannot both be 0.
+- `max_pods_per_node` (number, default `null`): The maximum number of pods per node. When null, the GKE default is used. Changing this value replaces the node pool.
+- `enable_secure_boot` (bool, default `false`): Enables Shielded VM secure boot on the nodes, with integrity monitoring. Changing this value replaces the node pool.
+
+Node pool names must be unique, and `min_node_count` must not exceed `max_node_count`.
+
+## Node service account
+
+The module creates a service account for the cluster nodes and grants it `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader` in the cluster's project. Nodes that pull images from Artifact Registry repositories in another project need `roles/artifactregistry.reader` granted on those repositories separately.
 
 ## Outputs
 
 - `service_account_email`: The email of the service account associated with the cluster.
 - `service_account_id`: The id of the service account associated with the cluster.
+- `cluster_name`: The name of the cluster.
+- `cluster_id`: The ID of the cluster, in the form `projects/<project>/locations/<location>/clusters/<name>`.
+- `cluster_location`: The location of the cluster, which is a region for a regional cluster or a zone for a zonal cluster.
+- `cluster_endpoint`: The IP address of the cluster's control plane endpoint.
+- `cluster_ca_certificate` (sensitive): The base64-encoded public CA certificate of the cluster's control plane.
+- `network_name`: The name of the VPC network the cluster uses.
+- `node_pool_names`: The names of the cluster's node pools, in the order of the `node_pools` input.
+
+The endpoint and CA certificate can be used to configure the `kubernetes` and `helm` providers:
+
+```hcl
+data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host                   = "https://${module.gke_cluster.cluster_endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(module.gke_cluster.cluster_ca_certificate)
+}
+```
 
 ## Tests
 

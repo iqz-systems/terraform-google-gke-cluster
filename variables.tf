@@ -45,6 +45,10 @@ variable "node_pools" {
     disk_type          = optional(string, null)
     initial_node_count = optional(number, 1)
     image_type         = optional(string, "cos_containerd")
+    max_surge          = optional(number, 1)
+    max_unavailable    = optional(number, 0)
+    max_pods_per_node  = optional(number, null)
+    enable_secure_boot = optional(bool, false)
   }))
   description = "A list of objects describing the node pools to be associated with the cluster."
 
@@ -52,11 +56,49 @@ variable "node_pools" {
     condition     = alltrue(flatten([for pool in var.node_pools : [for taint in pool.node_taints : contains(["NO_SCHEDULE", "PREFER_NO_SCHEDULE", "NO_EXECUTE"], taint.effect)]]))
     error_message = "Each node taint effect must be one of NO_SCHEDULE, PREFER_NO_SCHEDULE or NO_EXECUTE."
   }
+
+  validation {
+    condition     = alltrue([for pool in var.node_pools : pool.min_node_count <= pool.max_node_count])
+    error_message = "Each node pool must have a min_node_count that is less than or equal to its max_node_count."
+  }
+
+  validation {
+    condition     = length(distinct([for pool in var.node_pools : pool.name])) == length(var.node_pools)
+    error_message = "Node pool names must be unique."
+  }
+
+  validation {
+    condition     = alltrue([for pool in var.node_pools : pool.max_surge + pool.max_unavailable > 0])
+    error_message = "Each node pool must have max_surge plus max_unavailable greater than zero, because GKE requires at least one of them to be positive."
+  }
+}
+
+variable "resource_labels" {
+  type        = map(string)
+  default     = {}
+  description = "Labels added to the cluster. The project label is always set to the cluster's project and cannot be overridden."
+}
+
+variable "logging_components" {
+  type        = list(string)
+  default     = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]
+  description = "The cluster components whose logs are sent to Cloud Logging. WORKLOADS sends container logs to Cloud Logging, which is billed."
 }
 
 variable "node_service_account_name" {
   type        = string
   description = "The display name of the service account that will be created for the cluster."
+}
+
+variable "node_service_account_id" {
+  type        = string
+  default     = null
+  description = "The account ID of the node service account. When null, \"<cluster_name>-sa\" is used, which requires a cluster name of at most 27 characters."
+
+  validation {
+    condition     = var.node_service_account_id == null || can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.node_service_account_id))
+    error_message = "The node service account ID must be 6 to 30 characters long, start with a lowercase letter, and contain only lowercase letters, digits and hyphens, ending with a letter or digit."
+  }
 }
 
 variable "enable_managed_prometheus" {
@@ -91,14 +133,23 @@ variable "create_vpc_network" {
 
 variable "vpc_network" {
   type        = string
-  description = "The vpc name where the cluster master has to be created."
+  description = "The name of an existing VPC network for the cluster. Required when create_vpc_network is false; ignored, with a warning, when create_vpc_network is true."
   default     = null
 
 }
 
 variable "subnetwork" {
-  type = string
+  type        = string
+  description = "The name of the subnetwork in which the cluster is created."
+}
 
+variable "secondary_range_names" {
+  type = object({
+    pods     = string
+    services = string
+  })
+  default     = null
+  description = "The names of existing secondary ranges in the subnetwork for pod and service IP addresses. When null, GKE creates a /16 range for pods and a /22 range for services. Changing this on an existing cluster replaces the cluster."
 }
 
 variable "private_cluster_config" {
