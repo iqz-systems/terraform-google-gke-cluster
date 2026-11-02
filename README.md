@@ -75,6 +75,8 @@ module "gke_cluster" {
 - `enable_secret_sync_config` (bool, default `false`): Enables the secret sync configuration.
 - `disable_deletion_protection` (bool, default `false`): Disables deletion protection on the cluster.
 - `maintenance_window` (object, default Saturday and Sunday from 02:00 to 08:00 UTC): The recurring maintenance window, with the attributes `start_time`, `end_time` and `recurrence`. Set to null to remove the window.
+- `resource_labels` (map of string, default `{}`): Extra labels added to the cluster. The `project` label is always set to the cluster's project and cannot be overridden.
+- `logging_components` (list of string, default `["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]`): The components whose logs are sent to Cloud Logging. `WORKLOADS` sends container logs, which are billed by volume.
 
 ### Networking
 
@@ -103,6 +105,12 @@ module "gke_cluster" {
 - `disk_type` (string, default `null`): The boot disk type, for example `pd-balanced` or `pd-ssd`. When null, the GKE default is used.
 - `initial_node_count` (number, default `1`): The number of nodes created with the pool. A value of 0 creates the pool without nodes. Later changes to this value are ignored.
 - `image_type` (string, default `"cos_containerd"`): The node image type.
+- `max_surge` (number, default `1`): The number of extra nodes created during an upgrade.
+- `max_unavailable` (number, default `0`): The number of nodes that can be unavailable during an upgrade. `max_surge` and `max_unavailable` cannot both be 0.
+- `max_pods_per_node` (number, default `null`): The maximum number of pods per node. When null, the GKE default is used. Changing this value replaces the node pool.
+- `enable_secure_boot` (bool, default `false`): Enables Shielded VM secure boot on the nodes, with integrity monitoring. Changing this value replaces the node pool.
+
+Node pool names must be unique, and `min_node_count` must not exceed `max_node_count`.
 
 ## Node service account
 

@@ -45,6 +45,10 @@ variable "node_pools" {
     disk_type          = optional(string, null)
     initial_node_count = optional(number, 1)
     image_type         = optional(string, "cos_containerd")
+    max_surge          = optional(number, 1)
+    max_unavailable    = optional(number, 0)
+    max_pods_per_node  = optional(number, null)
+    enable_secure_boot = optional(bool, false)
   }))
   description = "A list of objects describing the node pools to be associated with the cluster."
 
@@ -52,6 +56,33 @@ variable "node_pools" {
     condition     = alltrue(flatten([for pool in var.node_pools : [for taint in pool.node_taints : contains(["NO_SCHEDULE", "PREFER_NO_SCHEDULE", "NO_EXECUTE"], taint.effect)]]))
     error_message = "Each node taint effect must be one of NO_SCHEDULE, PREFER_NO_SCHEDULE or NO_EXECUTE."
   }
+
+  validation {
+    condition     = alltrue([for pool in var.node_pools : pool.min_node_count <= pool.max_node_count])
+    error_message = "Each node pool must have a min_node_count that is less than or equal to its max_node_count."
+  }
+
+  validation {
+    condition     = length(distinct([for pool in var.node_pools : pool.name])) == length(var.node_pools)
+    error_message = "Node pool names must be unique."
+  }
+
+  validation {
+    condition     = alltrue([for pool in var.node_pools : pool.max_surge + pool.max_unavailable > 0])
+    error_message = "Each node pool must have max_surge plus max_unavailable greater than zero, because GKE requires at least one of them to be positive."
+  }
+}
+
+variable "resource_labels" {
+  type        = map(string)
+  default     = {}
+  description = "Labels added to the cluster. The project label is always set to the cluster's project and cannot be overridden."
+}
+
+variable "logging_components" {
+  type        = list(string)
+  default     = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]
+  description = "The cluster components whose logs are sent to Cloud Logging. WORKLOADS sends container logs to Cloud Logging, which is billed."
 }
 
 variable "node_service_account_name" {

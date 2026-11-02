@@ -60,9 +60,7 @@ resource "google_container_cluster" "cluster" {
     workload_pool = "${data.google_project.current.project_id}.svc.id.goog"
   }
 
-  resource_labels = {
-    "project" = data.google_project.current.project_id
-  }
+  resource_labels = merge(var.resource_labels, { "project" = data.google_project.current.project_id })
 
   network    = var.create_vpc_network ? google_compute_network.vpc_network[0].name : var.vpc_network
   subnetwork = var.subnetwork
@@ -95,7 +93,7 @@ resource "google_container_cluster" "cluster" {
   }
 
   logging_config {
-    enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]
+    enable_components = var.logging_components
   }
 
   gateway_api_config {
@@ -182,6 +180,15 @@ resource "google_container_node_pool" "node_pool" {
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
+
+    # Emitted only when enabled: the provider treats this block as ForceNew and Computed, so setting it on existing pools could replace them.
+    dynamic "shielded_instance_config" {
+      for_each = var.node_pools[count.index].enable_secure_boot ? [1] : []
+      content {
+        enable_secure_boot          = true
+        enable_integrity_monitoring = true
+      }
+    }
   }
 
   network_config {
@@ -193,6 +200,7 @@ resource "google_container_node_pool" "node_pool" {
     auto_upgrade = true
   }
 
+  max_pods_per_node  = var.node_pools[count.index].max_pods_per_node
   initial_node_count = var.node_pools[count.index].initial_node_count
 
   autoscaling {
@@ -201,8 +209,8 @@ resource "google_container_node_pool" "node_pool" {
   }
 
   upgrade_settings {
-    max_surge       = 1
-    max_unavailable = 0
+    max_surge       = var.node_pools[count.index].max_surge
+    max_unavailable = var.node_pools[count.index].max_unavailable
   }
 
   lifecycle {
