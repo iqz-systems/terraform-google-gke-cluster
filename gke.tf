@@ -64,7 +64,7 @@ resource "google_container_cluster" "cluster" {
     "project" = data.google_project.current.project_id
   }
 
-  network    = (!var.create_vpc_network && var.vpc_network != null) ? var.vpc_network : google_compute_network.vpc_network.0.name
+  network    = var.create_vpc_network ? google_compute_network.vpc_network[0].name : var.vpc_network
   subnetwork = var.subnetwork
   # Enable Dataplane V2
   # This also enables network policies by default.
@@ -111,6 +111,19 @@ resource "google_container_cluster" "cluster" {
       node_version,
       node_pool.0.version,
     ]
+
+    precondition {
+      condition     = var.create_vpc_network || var.vpc_network != null
+      error_message = "vpc_network must be set when create_vpc_network is false."
+    }
+  }
+}
+
+# A warning rather than an error so existing callers are not broken.
+check "vpc_network_ignored" {
+  assert {
+    condition     = !var.create_vpc_network || var.vpc_network == null
+    error_message = "vpc_network is ignored because create_vpc_network is true; the module-created network is used."
   }
 }
 

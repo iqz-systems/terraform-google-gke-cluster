@@ -29,6 +29,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2025-12-08: The Gateway API is enabled on the standard channel by default.
 - 2026-10-19: New attributes on `node_pools` are declared with `optional(..., default)`, so that existing callers keep working without changes. New inputs will follow the same rule, and their defaults will reproduce the current behaviour.
 - 2026-11-01: Changes that would break existing callers (F11, F12) are held for a single major release, so that callers migrate once. All other backlog items will be released as minor versions. The user approved this plan and release grouping on 2026-11-01.
+- 2026-11-01: For F2, a missing `vpc_network` with `create_vpc_network = false` will be a hard error from a precondition on the cluster, while a `vpc_network` ignored because `create_vpc_network = true` will produce a warning from a `check` block. A hard error in the second case would break existing callers' plans. A precondition is used instead of a cross-variable validation, which would require Terraform 1.9; the `check` block requires Terraform 1.5, which is below the 1.7 already required by the tests.
 
 ## Verification Plan
 
@@ -44,7 +45,6 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ### Defects
 
-- [ ] F2: Validate the VPC network inputs. **Exists**: `network` in `gke.tf` reads `google_compute_network.vpc_network.0.name` when `create_vpc_network = false` and `vpc_network = null`, which fails with an index error; when `create_vpc_network = true`, a supplied `vpc_network` is silently ignored. **Missing**: a validation (or a precondition on the cluster) that requires `vpc_network` when `create_vpc_network = false` and rejects it when `create_vpc_network = true`, with a clear error message; replace the legacy `.0` index syntax with `[0]`. Add tests for each invalid combination and for both valid ones.
 - [ ] F3: Prevent service account ID overflow. **Exists**: `account_id = "${var.cluster_name}-sa"` in `main.tf`; service account IDs are limited to 6 to 30 characters, so a cluster name longer than 27 characters plans successfully and fails at apply. **Missing**: an optional `node_service_account_id` input that defaults to `"${cluster_name}-sa"`, and a validation that the resulting ID matches `^[a-z][a-z0-9-]{4,28}[a-z0-9]$`. Add tests for a long cluster name with and without the override.
 - [ ] F4: Make the module-created VPC usable. **Exists**: `google_compute_network.vpc_network` is an auto-mode network with no subnetwork managed by the module, while `subnetwork` remains a required input whose only working value is the auto-created regional subnet. **Missing**: a decision between creating a custom-mode network with a subnetwork and secondary ranges (making `subnetwork` optional when the module creates the network) and removing network creation in the next major release. This decision needs the user's input before implementation.
 
@@ -80,16 +80,17 @@ The calling configuration supplies the inputs. The module resolves the project t
 - [x] F0j: Secret Manager add-on and secret sync configuration. Completed 2026-08-28.
 - [x] F0k: Zonal clusters, node labels and taints, disk and image settings, initial node count, release channel, and plan-time tests. Completed 2026-10-19.
 - [x] F1: Support more than one master authorized network. All entries in `master_authorized_networks_config` are now emitted as `cidr_blocks` inside a single `master_authorized_networks_config` block, which is omitted when the list is empty. Completed 2026-11-01.
+- [x] F2: Validate the VPC network inputs. With `create_vpc_network = false` and no `vpc_network`, a precondition on the cluster now fails with a clear message; with `create_vpc_network = true` and `vpc_network` set, a `check` block warns that the value is ignored. The `network` expression no longer indexes an empty resource list. Completed 2026-11-01.
 
 ## Next Steps
 
-1. F2: the invalid network combinations produce an unclear error or silently ignore input.
-2. F3: long cluster names fail only at apply, after the plan has been approved.
-3. F5: callers need the cluster endpoint and CA certificate to configure the `kubernetes` and `helm` providers.
+1. F3: long cluster names fail only at apply, after the plan has been approved.
+2. F5: callers need the cluster endpoint and CA certificate to configure the `kubernetes` and `helm` providers.
 
 ## Bugs Fixed During Verification
 
 - 2026-11-01, F1: a plan with two or more entries in `master_authorized_networks_config` failed with "Too many master_authorized_networks_config blocks". **Cause**: `gke.tf` generated one `master_authorized_networks_config` block per list entry, and the provider allows at most one. **Fix**: a single block, present only when the list is non-empty, with a `dynamic "cidr_blocks"` over the list. **Test**: `multiple_authorized_networks` in `tests/master_authorized_networks.tftest.hcl` (with `no_authorized_networks_by_default` and `single_authorized_network` covering the other cases).
+- 2026-11-01, F2: a plan with `create_vpc_network = false` and `vpc_network = null` failed with "Invalid index" on `google_compute_network.vpc_network.0.name`, and with `create_vpc_network = true` a supplied `vpc_network` was silently ignored. **Cause**: the `network` expression in `gke.tf` fell back to the module-created network whenever `vpc_network` was null, without checking `create_vpc_network`, and nothing validated the combination. **Fix**: `network` is selected by `create_vpc_network` alone, a cluster precondition requires `vpc_network` when `create_vpc_network` is false, and `check "vpc_network_ignored"` warns when the value is ignored. **Test**: `missing_vpc_network_rejected` and `ignored_vpc_network_warned` in `tests/network.tftest.hcl` (with `module_vpc_created_by_default` and `existing_vpc_used` covering the valid cases).
 
 ## Changelog
 
@@ -97,3 +98,5 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: Plan approved; F1 started with a reproducing test.
 - 2026-11-01: Added F13 for the deprecated remove_default_node_pool argument reported by provider 8.9.0.
 - 2026-11-01: F1 completed; all 10 test runs pass. See Bugs Fixed During Verification.
+- 2026-11-01: F2 started with a reproducing test; recorded the precondition and check block decision in Notes.
+- 2026-11-01: F2 completed; all 14 test runs pass. See Bugs Fixed During Verification.

@@ -91,7 +91,7 @@ variable "create_vpc_network" {
 
 variable "vpc_network" {
   type        = string
-  description = "The vpc name where the cluster master has to be created."
+  description = "The name of an existing VPC network for the cluster. Required when create_vpc_network is false; ignored, with a warning, when create_vpc_network is true."
   default     = null
 
 }
