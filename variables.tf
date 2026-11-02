@@ -108,8 +108,17 @@ variable "vpc_network" {
 }
 
 variable "subnetwork" {
-  type = string
+  type        = string
+  description = "The name of the subnetwork in which the cluster is created."
+}
 
+variable "secondary_range_names" {
+  type = object({
+    pods     = string
+    services = string
+  })
+  default     = null
+  description = "The names of existing secondary ranges in the subnetwork for pod and service IP addresses. When null, GKE creates a /16 range for pods and a /22 range for services. Changing this on an existing cluster replaces the cluster."
 }
 
 variable "private_cluster_config" {

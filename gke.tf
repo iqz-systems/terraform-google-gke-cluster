@@ -70,9 +70,12 @@ resource "google_container_cluster" "cluster" {
   # This also enables network policies by default.
   datapath_provider = "ADVANCED_DATAPATH"
 
+  # The provider rejects CIDR blocks and secondary range names together, so exactly one pair is set.
   ip_allocation_policy {
-    cluster_ipv4_cidr_block  = "/16"
-    services_ipv4_cidr_block = "/22"
+    cluster_ipv4_cidr_block       = var.secondary_range_names == null ? "/16" : null
+    services_ipv4_cidr_block      = var.secondary_range_names == null ? "/22" : null
+    cluster_secondary_range_name  = var.secondary_range_names == null ? null : var.secondary_range_names.pods
+    services_secondary_range_name = var.secondary_range_names == null ? null : var.secondary_range_names.services
   }
 
   dynamic "maintenance_policy" {

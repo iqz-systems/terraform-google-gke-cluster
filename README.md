@@ -81,6 +81,7 @@ module "gke_cluster" {
 - `create_vpc_network` (bool, default `true`): Creates a VPC network for the cluster.
 - `vpc_network` (string, default `null`): The name of the VPC network. This is required when `create_vpc_network` is false. When `create_vpc_network` is true, the value is ignored and the plan shows a warning.
 - `subnetwork` (string, required): The subnetwork in which the cluster is created.
+- `secondary_range_names` (object, default `null`): The names of existing secondary ranges in the subnetwork, with the attributes `pods` and `services`, both required. Use this for a Shared VPC or for pre-planned IP ranges. When null, GKE creates a `/16` range for pods and a `/22` range for services. Changing this value on an existing cluster replaces the cluster, so it should be set only when the cluster is created.
 - `private_cluster_config` (object, default `null`): The private cluster settings, with the optional attributes `enable_private_endpoint` (default `false`), `enable_private_nodes` (default `false`) and `master_ipv4_cidr_block` (default `null`).
 - `master_authorized_networks_config` (list of object, default `[]`): The networks that may reach the control plane, each with `cidr_block` and `display_name`. When the list is empty, no authorized networks are configured.
 
