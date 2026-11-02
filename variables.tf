@@ -59,6 +59,17 @@ variable "node_service_account_name" {
   description = "The display name of the service account that will be created for the cluster."
 }
 
+variable "node_service_account_id" {
+  type        = string
+  default     = null
+  description = "The account ID of the node service account. When null, \"<cluster_name>-sa\" is used, which requires a cluster name of at most 27 characters."
+
+  validation {
+    condition     = var.node_service_account_id == null || can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.node_service_account_id))
+    error_message = "The node service account ID must be 6 to 30 characters long, start with a lowercase letter, and contain only lowercase letters, digits and hyphens, ending with a letter or digit."
+  }
+}
+
 variable "enable_managed_prometheus" {
   type        = bool
   default     = false

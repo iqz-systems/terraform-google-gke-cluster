@@ -30,6 +30,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-10-19: New attributes on `node_pools` are declared with `optional(..., default)`, so that existing callers keep working without changes. New inputs will follow the same rule, and their defaults will reproduce the current behaviour.
 - 2026-11-01: Changes that would break existing callers (F11, F12) are held for a single major release, so that callers migrate once. All other backlog items will be released as minor versions. The user approved this plan and release grouping on 2026-11-01.
 - 2026-11-01: For F2, a missing `vpc_network` with `create_vpc_network = false` will be a hard error from a precondition on the cluster, while a `vpc_network` ignored because `create_vpc_network = true` will produce a warning from a `check` block. A hard error in the second case would break existing callers' plans. A precondition is used instead of a cross-variable validation, which would require Terraform 1.9; the `check` block requires Terraform 1.5, which is below the 1.7 already required by the tests.
+- 2026-11-01: F3 was first recorded as a defect, on the assumption that a long service account ID would plan successfully and fail at apply. The test run showed that the google provider rejects it at plan time, so F3 is a feature that lets callers with long cluster names set the ID. The module adds no check of its own for the derived ID, because the provider's validation runs before any module precondition and already names the invalid value.
 
 ## Verification Plan
 
@@ -45,7 +46,6 @@ The calling configuration supplies the inputs. The module resolves the project t
 
 ### Defects
 
-- [ ] F3: Prevent service account ID overflow. **Exists**: `account_id = "${var.cluster_name}-sa"` in `main.tf`; service account IDs are limited to 6 to 30 characters, so a cluster name longer than 27 characters plans successfully and fails at apply. **Missing**: an optional `node_service_account_id` input that defaults to `"${cluster_name}-sa"`, and a validation that the resulting ID matches `^[a-z][a-z0-9-]{4,28}[a-z0-9]$`. Add tests for a long cluster name with and without the override.
 - [ ] F4: Make the module-created VPC usable. **Exists**: `google_compute_network.vpc_network` is an auto-mode network with no subnetwork managed by the module, while `subnetwork` remains a required input whose only working value is the auto-created regional subnet. **Missing**: a decision between creating a custom-mode network with a subnetwork and secondary ranges (making `subnetwork` optional when the module creates the network) and removing network creation in the next major release. This decision needs the user's input before implementation.
 
 ### Outputs and configuration
@@ -81,11 +81,12 @@ The calling configuration supplies the inputs. The module resolves the project t
 - [x] F0k: Zonal clusters, node labels and taints, disk and image settings, initial node count, release channel, and plan-time tests. Completed 2026-10-19.
 - [x] F1: Support more than one master authorized network. All entries in `master_authorized_networks_config` are now emitted as `cidr_blocks` inside a single `master_authorized_networks_config` block, which is omitted when the list is empty. Completed 2026-11-01.
 - [x] F2: Validate the VPC network inputs. With `create_vpc_network = false` and no `vpc_network`, a precondition on the cluster now fails with a clear message; with `create_vpc_network = true` and `vpc_network` set, a `check` block warns that the value is ignored. The `network` expression no longer indexes an empty resource list. Completed 2026-11-01.
+- [x] F3: Allow the node service account ID to be set. The optional `node_service_account_id` input overrides the default `<cluster_name>-sa`, so clusters with names longer than 27 characters can use the module; invalid values are rejected by a variable validation. Completed 2026-11-01.
 
 ## Next Steps
 
-1. F3: long cluster names fail only at apply, after the plan has been approved.
-2. F5: callers need the cluster endpoint and CA certificate to configure the `kubernetes` and `helm` providers.
+1. F5: callers need the cluster endpoint and CA certificate to configure the `kubernetes` and `helm` providers.
+2. F4: the module-created VPC cannot be used without a matching `subnetwork`; this needs a decision between creating a subnetwork and removing network creation in the major release.
 
 ## Bugs Fixed During Verification
 
@@ -100,3 +101,6 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F1 completed; all 10 test runs pass. See Bugs Fixed During Verification.
 - 2026-11-01: F2 started with a reproducing test; recorded the precondition and check block decision in Notes.
 - 2026-11-01: F2 completed; all 14 test runs pass. See Bugs Fixed During Verification.
+- 2026-11-01: F3 started with a reproducing test.
+- 2026-11-01: Reclassified F3 from a defect to a feature after the test run; the long-name test was removed because the provider already rejects the ID at plan time.
+- 2026-11-01: F3 completed; all 18 test runs pass.

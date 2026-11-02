@@ -69,6 +69,7 @@ module "gke_cluster" {
 - `cluster_description` (string, default `""`): The description associated with the cluster.
 - `release_channel` (string, default `"REGULAR"`): The GKE release channel. Allowed values are UNSPECIFIED, RAPID, REGULAR, STABLE and EXTENDED.
 - `node_service_account_name` (string, required): The display name of the service account that is created for the cluster nodes.
+- `node_service_account_id` (string, default `null`): The account ID of the node service account. When null, `<cluster_name>-sa` is used. Service account IDs are limited to 30 characters, so this must be set when the cluster name is longer than 27 characters.
 - `enable_managed_prometheus` (bool, default `false`): Enables managed Prometheus.
 - `enable_secret_manager_config` (bool, default `false`): Enables the Secret Manager add-on.
 - `enable_secret_sync_config` (bool, default `false`): Enables the secret sync configuration.

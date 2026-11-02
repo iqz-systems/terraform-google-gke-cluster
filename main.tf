@@ -12,7 +12,7 @@ data "google_project" "current" {
 }
 
 resource "google_service_account" "k8s_sa" {
-  account_id   = "${var.cluster_name}-sa"
+  account_id   = coalesce(var.node_service_account_id, "${var.cluster_name}-sa")
   project      = data.google_project.current.project_id
   display_name = var.node_service_account_name
   description  = "Service account for ${var.cluster_name} GKE cluster."
