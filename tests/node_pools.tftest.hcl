@@ -56,21 +56,21 @@ run "labels_and_taint_applied" {
 
   variables {
     node_pools = [{
-      name                 = "databolt"
+      name                 = "analytics"
       machine_type         = "n2-standard-8"
-      cluster_node_tags    = ["databolt"]
+      cluster_node_tags    = ["analytics"]
       min_node_count       = 0
       max_node_count       = 2
       spot_nodes           = false
       node_pool_node_zones = ["us-east1-b"]
       enable_private_nodes = true
-      node_labels          = { workload = "databolt", tier = "compute" }
-      node_taints          = [{ key = "dedicated", value = "databolt", effect = "NO_EXECUTE" }]
+      node_labels          = { workload = "analytics", tier = "compute" }
+      node_taints          = [{ key = "dedicated", value = "analytics", effect = "NO_EXECUTE" }]
     }]
   }
 
   assert {
-    condition     = google_container_node_pool.node_pool[0].node_config[0].labels["workload"] == "databolt" && google_container_node_pool.node_pool[0].node_config[0].labels["tier"] == "compute"
+    condition     = google_container_node_pool.node_pool[0].node_config[0].labels["workload"] == "analytics" && google_container_node_pool.node_pool[0].node_config[0].labels["tier"] == "compute"
     error_message = "Node labels were not applied."
   }
 
@@ -80,7 +80,7 @@ run "labels_and_taint_applied" {
   }
 
   assert {
-    condition     = google_container_node_pool.node_pool[0].node_config[0].taint[0].key == "dedicated" && google_container_node_pool.node_pool[0].node_config[0].taint[0].value == "databolt" && google_container_node_pool.node_pool[0].node_config[0].taint[0].effect == "NO_EXECUTE"
+    condition     = google_container_node_pool.node_pool[0].node_config[0].taint[0].key == "dedicated" && google_container_node_pool.node_pool[0].node_config[0].taint[0].value == "analytics" && google_container_node_pool.node_pool[0].node_config[0].taint[0].effect == "NO_EXECUTE"
     error_message = "The taint was not applied as given."
   }
 }

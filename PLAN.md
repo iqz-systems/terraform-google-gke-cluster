@@ -45,7 +45,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - Every change will pass `terraform fmt -check -recursive` and `terraform validate`. Once F10 is complete, these checks and the tests will also run in CI on every pull request.
 - Behaviour that only the GCP API enforces, such as the service account ID length and the authorized networks block limit, will additionally be checked with `terraform plan -lock=false` from an example configuration against a non-production project before each release.
 - The mock provider cannot populate the cluster's `master_auth` block, so the value of the `cluster_ca_certificate` output will be checked before each release with `terraform plan -lock=false` and `terraform output` from an example configuration against an existing non-production cluster.
-- Before the release that contains F6, the container images running in the clusters that use the module will be listed (read only) to confirm that none is pulled from Container Registry storage, because the node service account no longer has `roles/storage.objectViewer`. This was checked on 2026-11-01 for all six clusters that use the module: `data-analytics`, `iqz-apps`, `iqz-databolt`, `iqz-esgwize`, `pega` and `platform`. The only private gcr.io-domain images are under `us.gcr.io/iqz-apps`, which is an Artifact Registry repository, so `roles/artifactregistry.reader` covers the `iqz-apps` cluster. The `pega` cluster pulls those images across projects through a grant in `iqz-apps` that the module does not manage, so F6 does not affect it. The other gcr.io images are public Google images. No further check is needed unless a new cluster starts using the module before release.
+- Before the release that contains F6, the container images running in the clusters that use the module will be listed (read only) to confirm that none is pulled from Container Registry storage, because the node service account no longer has `roles/storage.objectViewer`. This was checked on 2026-11-01 for every cluster known to use the module. The only private gcr.io-domain images are served from an Artifact Registry repository, which `roles/artifactregistry.reader` covers for clusters in the same project. One cluster pulls those images from another project through a grant that the module does not manage, so F6 does not affect it. The other gcr.io images are public Google images. No further check is needed unless a new cluster starts using the module before release.
 - The README's Usage, Inputs and Outputs sections will be checked against `variables.tf` and `outputs.tf` for every change to an input or output.
 
 ## Backlog
@@ -117,8 +117,8 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: Folded F4 into F12 after the user confirmed no caller uses the module-created network.
 - 2026-11-01: F6 started; storage.objectViewer removal moved from F12 into F6.
 - 2026-11-01: F6 completed; all 21 test runs pass. Added the pre-release Container Registry image check to the Verification Plan.
-- 2026-11-01: Recorded the result of the Container Registry image check for four clusters.
-- 2026-11-01: Completed the Container Registry image check with the platform and iqz-databolt clusters.
+- 2026-11-01: Recorded the result of the Container Registry image check for part of the clusters that use the module.
+- 2026-11-01: Completed the Container Registry image check for the remaining clusters that use the module.
 - 2026-11-01: Dropped F7 because changing node pool OAuth scopes forces node pool replacement.
 - 2026-11-01: F8 started; tests and implementation written.
 - 2026-11-01: F8 completed; all 23 test runs pass.
@@ -126,3 +126,4 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F9 completed; all 29 test runs pass.
 - 2026-11-01: Added F14 (GKE cost allocation), approved by the user; tests and implementation written.
 - 2026-11-01: F14 completed; all 32 test runs pass.
+- 2026-11-01: Removed the names of internal projects, clusters and workloads, because the repository is public.
