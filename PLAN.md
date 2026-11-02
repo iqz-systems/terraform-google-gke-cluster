@@ -36,6 +36,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F7 (removing the redundant OAuth scopes and the `disable-legacy-endpoints` metadata) was dropped. In provider 8.9.0, `oauth_scopes` and `metadata` in `node_config` are `ForceNew` and the node pool resource does not override this, so changing the scopes would replace every caller's node pools; omitting `oauth_scopes` would give new pools GKE's default scopes without `cloud-platform`. The change would not alter behaviour, so it does not justify a node pool replacement even in a major release. A comment in `gke.tf` records why the scopes are kept.
 - 2026-11-01: F8 uses one optional `secondary_range_names` object with required `pods` and `services` attributes, instead of two separate inputs. In provider 8.9.0 each CIDR block field conflicts with both secondary range name fields, so the names must be supplied together, and the object type enforces that. All four fields are `ForceNew`, so the input is documented as applying to new clusters only.
 - 2026-11-01: In F9, `shielded_instance_config` is emitted only when a pool sets `enable_secure_boot = true`, and `max_pods_per_node` defaults to null, because the provider marks both `ForceNew`; with the defaults, existing node pools are unchanged. Enabling either on an existing pool replaces that pool, which the README states. The `project` cluster label cannot be overridden through `resource_labels`.
+- 2026-11-01: F14 was approved with `enable_cost_allocation` defaulting to null. `cost_management_config` is optional and computed in provider 8.9.0 and is updated in place, so omitting the block leaves the current setting untouched; a default of false would disable cost allocation on any cluster where it was enabled outside Terraform.
 
 ## Verification Plan
 
@@ -87,6 +88,7 @@ The calling configuration supplies the inputs. The module resolves the project t
 - [x] F6: Update the node service account roles. The node service account is granted `roles/container.defaultNodeServiceAccount` and `roles/artifactregistry.reader` through one `for_each` resource, `google_project_iam_member.k8s_sa_roles`; `roles/storage.objectViewer`, `roles/logging.logWriter` and `roles/monitoring.metricWriter` are no longer granted. The Container Registry check remains to be done before release, as set out in the Verification Plan. Completed 2026-11-01.
 - [x] F8: Allow named secondary ranges for pods and services. The optional `secondary_range_names` object (`pods`, `services`) makes the cluster use existing secondary ranges instead of the `/16` and `/22` netmasks; it is documented as applying to new clusters only, because changing it replaces the cluster. Completed 2026-11-01.
 - [x] F9: Expose fixed settings as optional inputs. Added `resource_labels` (merged, with the `project` label always set by the module), `logging_components`, and per-pool `max_surge`, `max_unavailable`, `max_pods_per_node` and `enable_secure_boot`, with validations for node counts, unique pool names and surge settings. All defaults reproduce the previous fixed values. Completed 2026-11-01.
+- [x] F14: Add GKE cost allocation. The optional `enable_cost_allocation` input enables (true) or disables (false) `cost_management_config`; when it is null, the module leaves the setting unmanaged. Completed 2026-11-01.
 
 ## Next Steps
 
@@ -122,3 +124,5 @@ The calling configuration supplies the inputs. The module resolves the project t
 - 2026-11-01: F8 completed; all 23 test runs pass.
 - 2026-11-01: F9 started; tests written and implementation delegated.
 - 2026-11-01: F9 completed; all 29 test runs pass.
+- 2026-11-01: Added F14 (GKE cost allocation), approved by the user; tests and implementation written.
+- 2026-11-01: F14 completed; all 32 test runs pass.

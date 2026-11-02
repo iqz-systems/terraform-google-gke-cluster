@@ -119,6 +119,12 @@ variable "enable_secret_sync_config" {
   description = "Set true to enable secret sync config. Defaults to false."
 }
 
+variable "enable_cost_allocation" {
+  type        = bool
+  default     = null
+  description = "Set true to enable GKE cost allocation, which adds cluster and namespace labels to the billing export to BigQuery, or false to disable it. When null, the module does not manage the setting."
+}
+
 variable "disable_deletion_protection" {
   type        = bool
   default     = false
