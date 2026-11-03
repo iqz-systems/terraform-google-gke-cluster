@@ -34,6 +34,11 @@ run "defaults_unchanged" {
   }
 
   assert {
+    condition     = toset(google_container_cluster.cluster.monitoring_config[0].enable_components) == toset(["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER"])
+    error_message = "The default monitoring components must be unchanged."
+  }
+
+  assert {
     condition     = google_container_node_pool.node_pool[0].upgrade_settings[0].max_surge == 1 && google_container_node_pool.node_pool[0].upgrade_settings[0].max_unavailable == 0
     error_message = "The default surge upgrade settings must be max_surge 1 and max_unavailable 0."
   }
@@ -43,8 +48,9 @@ run "cluster_overrides" {
   command = plan
 
   variables {
-    resource_labels    = { team = "data", project = "ignored" }
-    logging_components = ["SYSTEM_COMPONENTS", "WORKLOADS"]
+    resource_labels       = { team = "data", project = "ignored" }
+    logging_components    = ["SYSTEM_COMPONENTS", "WORKLOADS"]
+    monitoring_components = ["SYSTEM_COMPONENTS"]
   }
 
   assert {
@@ -56,6 +62,21 @@ run "cluster_overrides" {
     condition     = toset(google_container_cluster.cluster.logging_config[0].enable_components) == toset(["SYSTEM_COMPONENTS", "WORKLOADS"])
     error_message = "The logging components were not applied."
   }
+
+  assert {
+    condition     = toset(google_container_cluster.cluster.monitoring_config[0].enable_components) == toset(["SYSTEM_COMPONENTS"])
+    error_message = "The monitoring components were not applied."
+  }
+}
+
+run "monitoring_components_without_system_components_rejected" {
+  command = plan
+
+  variables {
+    monitoring_components = ["APISERVER"]
+  }
+
+  expect_failures = [var.monitoring_components]
 }
 
 run "node_pool_overrides" {

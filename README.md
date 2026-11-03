@@ -78,6 +78,7 @@ module "gke_cluster" {
 - `maintenance_window` (object, default Saturday and Sunday from 02:00 to 08:00 UTC): The recurring maintenance window, with the attributes `start_time`, `end_time` and `recurrence`. Set to null to remove the window.
 - `resource_labels` (map of string, default `{}`): Extra labels added to the cluster. The `project` label is always set to the cluster's project and cannot be overridden.
 - `logging_components` (list of string, default `["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS"]`): The components whose logs are sent to Cloud Logging. `WORKLOADS` sends container logs, which are billed by volume.
+- `monitoring_components` (list of string, default `["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER"]`): The components whose metrics are sent to Cloud Monitoring. `SYSTEM_COMPONENTS` must be included when any component is enabled. The control plane metrics (`APISERVER`, `CONTROLLER_MANAGER` and `SCHEDULER`) are billed as Managed Service for Prometheus samples.
 
 ### Networking
 

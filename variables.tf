@@ -85,6 +85,17 @@ variable "logging_components" {
   description = "The cluster components whose logs are sent to Cloud Logging. WORKLOADS sends container logs to Cloud Logging, which is billed."
 }
 
+variable "monitoring_components" {
+  type        = list(string)
+  default     = ["SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER"]
+  description = "The cluster components whose metrics are sent to Cloud Monitoring. Control plane metrics (APISERVER, CONTROLLER_MANAGER, SCHEDULER) are billed as Managed Service for Prometheus samples."
+
+  validation {
+    condition     = length(var.monitoring_components) == 0 || contains(var.monitoring_components, "SYSTEM_COMPONENTS")
+    error_message = "monitoring_components must include SYSTEM_COMPONENTS when any component is enabled, because GKE requires it."
+  }
+}
+
 variable "node_service_account_name" {
   type        = string
   description = "The display name of the service account that will be created for the cluster."
